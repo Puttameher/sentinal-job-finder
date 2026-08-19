@@ -105,7 +105,7 @@ This document details the **entire end-to-end architecture and operational flow 
 
 ## 2. Frontend User Journey & UI Component Flow
 
-### 1. Hero Stage & 3D Interactive Mascot (`MetaMaskHeroFull.tsx` & `SentinelMask3D.tsx`)
+### 1. Hero Stage & 3D Interactive Mascot (`SentinelHero.tsx` & `SentinelMask3D.tsx`)
 - **Visuals:** Heavy block typography (`WHERE YOUR JOBS LIVES`), dark forest-teal background (`#052824`), and the compact **3D Sentinel Mask**.
 - **Interactive Mechanics:** 
   1. A `mousemove` event listener on `window` captures normalized cursor coordinates:

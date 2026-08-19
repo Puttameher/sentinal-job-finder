@@ -1,33 +1,28 @@
 # Sentinel — Adaptive Job Ingestion System
 
 > **Acdyon Technologies Engineering Assessment (Part 1: Resilient Data Ingestion)**  
-> A production-quality, fault-tolerant job ingestion engine and candidate discovery platform featuring 3-state circuit breakers, bounded request pacing, typed schema validation, deterministic fallbacks, and AI-assisted schema drift diagnosis with the full MetaMask.io 3D WebGL page architecture.
+> A production-quality, fault-tolerant job ingestion engine and candidate discovery platform featuring 3-state circuit breakers, bounded request pacing, typed schema validation, deterministic fallbacks, AI-assisted schema drift diagnosis, and an interactive 3D WebGL cyber guardian mascot.
 
 ---
 
-## 🦊 MetaMask Structural Replication & Sections
+## 🛡️ Architecture & Frontend Design
 
-The frontend structure exactly mirrors **MetaMask (https://metamask.io/)** across all 8 major sections:
+The frontend structure features a bespoke, liquid-glass cyber aesthetic:
 
-1. **Sticky Header (`Header.tsx`):** MetaMask pill container with live network pipeline badge (`PIPELINES HEALTHY` / `FALLBACK ACTIVE`).
-2. **Section 1: Hero Section (`MetaMaskHeroFull.tsx`):**
-   - Retro-futuristic bold typography: `WHERE YOUR JOBS LIVE`.
-   - **Interactive 3D WebGL Mascot Hologram (`Sentinel3DHologram.tsx`):** Dynamic Three.js cybernetic icosahedron core with gyroscopic rings and floating particle cloud that dynamically follows user mouse coordinates (mimicking the MetaMask Fox Head tracking effect).
-   - Floating 3D coins, white CTA pill, and bottom-left live update banner.
-3. **Section 2: Pipeline Section (`MetaMaskSectionIngest.tsx`):**
-   - Giant block heading: `INGEST ANYTHING` with 4 surrounding cards (REST API, RSS Feed, Pydantic Schema, Fallback Tier) and central interactive Search & Opportunities Console.
-4. **Section 3: Resilience Section (`MetaMaskSectionResilience.tsx`):**
-   - Giant block heading: `TURN YOUR RESILIENCE ON` with 4 surrounding cards (Circuit Breaker, Jittered Pacer, Record Isolation, Health Scoring) and central live Telemetry Dashboard.
-5. **Section 4: Security Section (`MetaMaskSectionSecurity.tsx`):**
-   - Giant block heading: `MAXIMUM SECURITY` with 4 security pillars (Stopping Boundary, Detection Surface Parity, AI Schema Drift Radar, Chaos Bench) and central Chaos Demo Bench.
-6. **Section 5: Stats Section (`MetaMaskSectionStats.tsx`):**
-   - 4 horizontal validation benchmarks (100% Invariant Validation, 17/17 Passed Pytests, <250ms Median Latency, 3-State Breakers).
-7. **Section 6: Bottom CTA Section (`MetaMaskSectionCTA.tsx`):**
-   - Giant block heading: `GET STARTED` with 3D glow.
-8. **Section 7: Education & Updates Section (`MetaMaskSectionEducation.tsx`):**
-   - Split Newsletter card + Educational Lesson portal.
-9. **Section 8: Full Mega Footer Directory (`MetaMaskFooterFull.tsx`):**
-   - Footnotes with assessment alignment notes + 4-column directory (Ingestion, Resilience, Developer & Chaos, Documentation) + Bottom Language bar.
+1. **Liquid Glass Floating Navbar (`GlassNavBar.tsx`):** Frosted glassmorphic pill container with live network pipeline badge (`Live Flow [Live]`) and quick navigation.
+2. **Hero Stage (`SentinelHero.tsx`):**
+   - Retro-futuristic bold typography: `WHERE YOUR JOBS LIVES`.
+   - **Interactive 3D WebGL Mascot (`SentinelMask3D.tsx`):** Dynamic Three.js cybernetic guardian mask with real-time 3-axis cursor physics tracking, glowing telemetry visor, and gold trims.
+   - White action CTA pill and bottom-left live update banner.
+3. **Protocol Marquee Ribbon (`ProtocolMarquee.tsx`):**
+   - Smooth continuous GPU-accelerated ribbon showcasing active live protocols (RemoteOK REST, WeWorkRemotely RSS, Sandbox, Pydantic invariants, Circuit Breakers).
+4. **Centered Ingestion Console (`PremiumCenteredSearch.tsx`):**
+   - Centered liquid glass search box with real-time **Source-Cycling Loader** (`RemoteOK` $\to$ `WeWorkRemotely` $\to$ `Sandbox`).
+   - Live telemetry status and normalized opportunity inspection.
+5. **Telemetry & Live Flow Studio (`SentinelSectionResilience.tsx`):**
+   - Real-time circuit breaker state matrix (`CLOSED` / `OPEN` / `HALF_OPEN`), health scores, and moving average latency.
+6. **Closing Stage & Minimal Footer (`SentinelClosingPage.tsx`):**
+   - Centered white outline character mascot (`SentinelSketchLogo.tsx`), giant monolithic `SENTINEL` display title, and docked horizontal contact & navigation bar.
 
 ---
 
@@ -37,7 +32,7 @@ The frontend structure exactly mirrors **MetaMask (https://metamask.io/)** acros
                                   CLIENT UI
                    ┌───────────────────┴───────────────────┐
                    ▼                                       ▼
-          [Job Discovery View]                 [Telemetry & Demo Lab]
+          [Job Discovery View]                 [Telemetry Matrix]
                    │                                       │
                    └───────────────────┬───────────────────┘
                                        │ HTTP / JSON
@@ -78,7 +73,7 @@ pytest -v
 Tests verify:
 - ✅ Normalization for API, RSS XML, and Sandbox
 - ✅ Circuit Breaker transitions (`CLOSED` $\to$ `OPEN` $\to$ `HALF_OPEN` $\to$ `CLOSED`)
-- ✅ Bounded retry loops and jittered exponential backoff
+- ✅ Bounded retry loops and Gaussian jittered backoff
 - ✅ Batch validation and corrupted record isolation
 - ✅ Schema drift structural anomaly detection
 - ✅ AI diagnostic field mapping generation
@@ -100,4 +95,4 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000` to interact with the full MetaMask 3D experience!
+Open `http://localhost:3000` to interact with the full Sentinel platform!

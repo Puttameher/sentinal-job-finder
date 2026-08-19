@@ -2,12 +2,12 @@
 
 @layer base {
   :root {
-    --mm-bg-hero: #052824;
-    --mm-text-ice: #bbf3e5;
-    --mm-orange-main: #e2761b;
-    --mm-orange-dark: #b84f09;
-    --mm-orange-light: #f6851b;
-    --mm-teal-dark: #09332e;
+    --sentinel-bg-hero: #052824;
+    --sentinel-text-ice: #bbf3e5;
+    --sentinel-orange-main: #e2761b;
+    --sentinel-orange-dark: #b84f09;
+    --sentinel-orange-light: #f6851b;
+    --sentinel-teal-dark: #09332e;
   }
 
   body {
@@ -19,6 +19,7 @@
   }
 }
 
+.font-sentinel-headline,
 .font-mm-headline {
   font-family: 'Dela Gothic One', 'Unbounded', 'Syne', sans-serif;
   font-weight: 900;
@@ -29,7 +30,8 @@
   display: block;
 }
 
-/* MetaMask Exact Pill Buttons */
+/* Sentinel Pill Buttons */
+.sentinel-pill-black,
 .mm-pill-black {
   background-color: #0c0d0e;
   color: #ffffff;
@@ -41,11 +43,13 @@
   transition: all 0.2s ease;
 }
 
+.sentinel-pill-black:hover,
 .mm-pill-black:hover {
   background-color: #1a1c1e;
   transform: scale(1.03);
 }
 
+.sentinel-pill-white,
 .mm-pill-white {
   background-color: #ffffff;
   color: #0c0d0e;
@@ -58,21 +62,23 @@
   transition: all 0.2s ease;
 }
 
+.sentinel-pill-white:hover,
 .mm-pill-white:hover {
-  background-color: #f3f4f6;
-  transform: translateY(-2px) scale(1.02);
+  transform: scale(1.04);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
 
 /* Marquee continuous scroll */
 @keyframes marquee-scroll {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
 
 .animate-marquee {
   display: flex;
-  width: 200%;
-  animation: marquee-scroll 28s linear infinite;
+  width: max-content;
+  will-change: transform;
+  animation: marquee-scroll 36s linear infinite;
 }
 
 .animate-marquee:hover {

@@ -35,7 +35,7 @@ export const Sentinel3DHologram: React.FC = () => {
     // 1. Central Holographic Core (Icosahedron Crystal)
     const coreGeometry = new THREE.IcosahedronGeometry(1.5, 1);
     const coreMaterial = new THREE.MeshStandardMaterial({
-      color: 0xf97316, // MetaMask neon orange
+      color: 0xf97316, // Sentinel neon orange
       emissive: 0xea580c,
       emissiveIntensity: 0.5,
       roughness: 0.2,
@@ -134,7 +134,7 @@ export const Sentinel3DHologram: React.FC = () => {
     cyanPoint.position.set(-5, -5, 3);
     scene.add(cyanPoint);
 
-    // Mouse Tracking Physics (MetaMask Fox Head style)
+    // Mouse Tracking Physics (Sentinel Mascot style)
     let mouseX = 0;
     let mouseY = 0;
     let targetRotationX = 0;

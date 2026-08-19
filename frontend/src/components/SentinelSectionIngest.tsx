@@ -1,9 +1,9 @@
 import React from 'react';
-import { ArrowUpRight, Database, Layers, RefreshCw, Zap, TrendingUp, Search, ExternalLink } from 'lucide-react';
+import { ArrowUpRight, Database, Layers, RefreshCw, Zap } from 'lucide-react';
 import { IngestionResponse, Job } from '../types';
 import { JobSearch } from './JobSearch';
 
-interface MetaMaskSectionIngestProps {
+interface SentinelSectionIngestProps {
   onSearch: (query: string, location: string, company: string, preferredSource: string) => Promise<void>;
   loading: boolean;
   ingestionData: IngestionResponse | null;
@@ -11,7 +11,7 @@ interface MetaMaskSectionIngestProps {
   loadingOverlay?: React.ReactNode;
 }
 
-export const MetaMaskSectionIngest: React.FC<MetaMaskSectionIngestProps> = ({
+export const SentinelSectionIngest: React.FC<SentinelSectionIngestProps> = ({
   onSearch,
   loading,
   ingestionData,
@@ -25,7 +25,7 @@ export const MetaMaskSectionIngest: React.FC<MetaMaskSectionIngestProps> = ({
       <div className="absolute bottom-10 left-10 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto space-y-12 relative z-10">
-        {/* Massive Block Headline (MetaMask Style: "TRADE ANYTHING") */}
+        {/* Massive Block Headline */}
         <div className="text-center space-y-3">
           <span className="px-3.5 py-1 rounded-full text-xs font-mono font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
             Section 01 • Multi-Source Pipeline
@@ -40,45 +40,45 @@ export const MetaMaskSectionIngest: React.FC<MetaMaskSectionIngestProps> = ({
 
         {/* 4 Surrounding Feature Matrix Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Card 1 (Dark Teal) */}
+          {/* Card 1 */}
           <div className="p-6 rounded-3xl bg-[#08201a]/90 border border-emerald-500/30 flex flex-col justify-between hover:border-emerald-400/60 transition-all shadow-xl">
             <div className="space-y-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                 <Zap className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-bold text-white leading-snug">
-                Public REST API Connector
+                REST & JSON Endpoints
               </h3>
               <p className="text-xs text-emerald-200/70 leading-relaxed">
-                Connects to RemoteOK public endpoints with polite User-Agent headers, minimum request intervals, and sub-300ms latency.
+                Connects directly to active upstream job boards with resilient client pacing and custom header sanitization.
               </p>
             </div>
             <div className="pt-4 border-t border-emerald-500/20 mt-4 flex items-center justify-between text-xs font-bold text-emerald-400">
-              <span>JSON Protocol</span>
+              <span>RemoteOK API</span>
               <ArrowUpRight className="w-4 h-4" />
             </div>
           </div>
 
-          {/* Card 2 (Light Green/Teal) */}
+          {/* Card 2 */}
           <div className="p-6 rounded-3xl bg-[#08201a]/90 border border-emerald-500/30 flex flex-col justify-between hover:border-emerald-400/60 transition-all shadow-xl">
             <div className="space-y-3">
               <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center text-teal-400">
                 <Layers className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-bold text-white leading-snug">
-                XML / RSS Feed Stream
+                XML & RSS Feed Parser
               </h3>
               <p className="text-xs text-emerald-200/70 leading-relaxed">
-                Safe XML parsing via defusedxml for WeWorkRemotely feeds, converting raw channel items into canonical entities.
+                Defused XML parsing protected against quadratic blowup attacks, converting arbitrary RSS payloads into canonical schemas.
               </p>
             </div>
             <div className="pt-4 border-t border-emerald-500/20 mt-4 flex items-center justify-between text-xs font-bold text-teal-400">
-              <span>XML/RSS Stream</span>
+              <span>WeWorkRemotely RSS</span>
               <ArrowUpRight className="w-4 h-4" />
             </div>
           </div>
 
-          {/* Card 3 (Purple/Teal) */}
+          {/* Card 3 */}
           <div className="p-6 rounded-3xl bg-[#08201a]/90 border border-emerald-500/30 flex flex-col justify-between hover:border-emerald-400/60 transition-all shadow-xl">
             <div className="space-y-3">
               <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
@@ -97,7 +97,7 @@ export const MetaMaskSectionIngest: React.FC<MetaMaskSectionIngestProps> = ({
             </div>
           </div>
 
-          {/* Card 4 (Peach/Teal) */}
+          {/* Card 4 */}
           <div className="p-6 rounded-3xl bg-[#08201a]/90 border border-emerald-500/30 flex flex-col justify-between hover:border-emerald-400/60 transition-all shadow-xl">
             <div className="space-y-3">
               <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400">
@@ -124,7 +124,7 @@ export const MetaMaskSectionIngest: React.FC<MetaMaskSectionIngestProps> = ({
           </div>
         )}
 
-        {/* Central Interactive Showcase (Live Job Opportunities Console) */}
+        {/* Central Interactive Showcase */}
         <div className={`pt-6 ${loadingOverlay ? 'opacity-40 pointer-events-none' : ''}`}>
           <JobSearch
             onSearch={onSearch}

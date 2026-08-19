@@ -35,7 +35,7 @@ export const JobSearch: React.FC<JobSearchProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Search Filter Card (MetaMask Style Card in Forest Green) */}
+      {/* Search Filter Card (Sentinel Style Card in Forest Green) */}
       <div className="rounded-3xl p-8 sm:p-10 bg-[#102d24] border border-[#265949] shadow-xl text-left space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1b4337] pb-4">
           <div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SentinelSketchLogo } from './SentinelSketchLogo';
 import { Search } from 'lucide-react';
 
-export type NavPage = 'home' | 'dashboard' | 'telemetry' | 'lab' | 'education' | 'docs';
+export type NavPage = 'home' | 'dashboard' | 'telemetry';
 
 interface GlassNavBarProps {
   activePage: NavPage;
@@ -17,7 +17,6 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
     const handleScroll = () => {
       setVisible(window.scrollY > 200);
     };
-    // Also show immediately if on a subpage
     if (activePage !== 'home') {
       setVisible(true);
     }
@@ -28,9 +27,6 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
   const navItems = [
     { id: 'dashboard' as NavPage, label: 'Dashboard' },
     { id: 'telemetry' as NavPage, label: 'Live Flow', badge: 'Live' },
-    { id: 'lab' as NavPage, label: 'Demo Lab' },
-    { id: 'education' as NavPage, label: 'Learn' },
-    { id: 'docs' as NavPage, label: 'Architecture' },
   ];
 
   const isShown = visible || activePage !== 'home';
@@ -44,10 +40,10 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
       }`}
     >
       <nav
-        className="flex items-center gap-1.5 px-4 py-3 rounded-[22px]"
+        className="flex items-center gap-1.5 px-4 py-2.5 rounded-[22px]"
         style={{
           background:
-            'linear-gradient(135deg, rgba(8, 14, 12, 0.75) 0%, rgba(5, 10, 8, 0.82) 50%, rgba(10, 16, 14, 0.75) 100%)',
+            'linear-gradient(135deg, rgba(8, 14, 12, 0.8) 0%, rgba(5, 10, 8, 0.88) 50%, rgba(10, 16, 14, 0.8) 100%)',
           backdropFilter: 'blur(40px) saturate(1.8) brightness(1.1)',
           WebkitBackdropFilter: 'blur(40px) saturate(1.8) brightness(1.1)',
           border: '1px solid rgba(255, 255, 255, 0.09)',
@@ -68,12 +64,12 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
           }}
           title="Sentinel Home"
         >
-          <SentinelSketchLogo size={36} />
+          <SentinelSketchLogo size={34} />
         </div>
 
         {/* Glass Divider */}
         <div
-          className="w-px h-7 mx-2"
+          className="w-px h-6 mx-1.5"
           style={{
             background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.14), transparent)',
           }}
@@ -85,10 +81,10 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id, (item as any).scrollTarget)}
+              onClick={() => onNavigate(item.id)}
               onMouseEnter={() => setHoveredItem(item.id)}
               onMouseLeave={() => setHoveredItem(null)}
-              className={`relative flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl text-[13px] sm:text-[13.5px] font-semibold transition-all duration-250 cursor-pointer whitespace-nowrap ${
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-2xl text-[13px] font-semibold transition-all duration-250 cursor-pointer whitespace-nowrap ${
                 isActive
                   ? 'text-white'
                   : hoveredItem === item.id
@@ -126,7 +122,7 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
 
         {/* Glass Divider */}
         <div
-          className="w-px h-7 mx-2"
+          className="w-px h-6 mx-1.5"
           style={{
             background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.14), transparent)',
           }}
@@ -135,7 +131,7 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
         {/* CTA Button */}
         <button
           onClick={() => onNavigate('dashboard')}
-          className="flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-2xl text-[12px] sm:text-[12.5px] font-bold uppercase tracking-wider text-white cursor-pointer transition-all duration-250 hover:scale-[1.04] active:scale-[0.97] whitespace-nowrap"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[12px] font-bold uppercase tracking-wider text-white cursor-pointer transition-all duration-250 hover:scale-[1.04] active:scale-[0.97] whitespace-nowrap"
           style={{
             background:
               'linear-gradient(135deg, rgba(226, 118, 27, 0.4), rgba(226, 118, 27, 0.2))',

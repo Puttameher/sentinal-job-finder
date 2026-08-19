@@ -2,7 +2,7 @@ import React from 'react';
 import { SentinelSketchLogo } from './SentinelSketchLogo';
 
 interface SentinelClosingPageProps {
-  onNavigate: (tab: 'home' | 'dashboard' | 'telemetry' | 'lab' | 'education' | 'docs') => void;
+  onNavigate: (tab: 'home' | 'dashboard' | 'telemetry') => void;
 }
 
 export const SentinelClosingPage: React.FC<SentinelClosingPageProps> = ({ onNavigate }) => {
@@ -28,32 +28,29 @@ export const SentinelClosingPage: React.FC<SentinelClosingPageProps> = ({ onNavi
           <button onClick={() => onNavigate('telemetry')} className="hover:text-white transition-colors cursor-pointer">
             Circuit Breaker
           </button>
-          <button onClick={() => onNavigate('lab')} className="hover:text-white transition-colors cursor-pointer">
-            Fault Simulator
-          </button>
           <button onClick={() => onNavigate('telemetry')} className="hover:text-white transition-colors cursor-pointer">
-            Drift Radar
+            Telemetry Matrix
           </button>
-          <button onClick={() => onNavigate('docs')} className="hover:text-white transition-colors cursor-pointer">
-            Engine Verdict
+          <button onClick={() => onNavigate('dashboard')} className="hover:text-white transition-colors cursor-pointer">
+            Normalized Schema
           </button>
         </div>
       </div>
 
       {/* Center: Massive Display Wordmark + White Outline Character */}
       <div className="relative my-auto flex flex-col items-center justify-center text-center z-10 py-12">
-        {/* White Outline Character Mascot sitting gracefully above the title */}
+        {/* White Outline Character Mascot */}
         <div className="mb-4 sm:mb-6 animate-pulse opacity-95">
           <SentinelSketchLogo size={120} />
         </div>
 
-        {/* Giant Monolithic Headline (Matching "Investment Genie" Typography Layout) */}
+        {/* Giant Monolithic Headline */}
         <h1 className="text-7xl sm:text-9xl md:text-[12vw] lg:text-[13vw] font-black tracking-tighter text-white uppercase leading-none font-sans">
           Sentinel
         </h1>
       </div>
 
-      {/* Bottom Bar: Pinned Horizontal Footer (Matching Screenshot Bottom) */}
+      {/* Bottom Bar: Pinned Horizontal Footer */}
       <div className="w-full pt-8 border-t border-white/10 flex flex-wrap items-center justify-between gap-y-4 gap-x-6 text-[11px] sm:text-xs tracking-wider uppercase font-semibold text-white/70 z-10">
         {/* Left: Brand with White Outline Sketch Mascot */}
         <div 
@@ -80,27 +77,6 @@ export const SentinelClosingPage: React.FC<SentinelClosingPageProps> = ({ onNavi
             className="hover:text-white transition-colors cursor-pointer"
           >
             Telemetry Matrix
-          </button>
-
-          <button
-            onClick={() => onNavigate('lab')}
-            className="hover:text-white transition-colors cursor-pointer"
-          >
-            Chaos Lab
-          </button>
-
-          <button
-            onClick={() => onNavigate('docs')}
-            className="hover:text-white transition-colors cursor-pointer"
-          >
-            Architecture
-          </button>
-
-          <button
-            onClick={() => onNavigate('education')}
-            className="hover:text-white transition-colors cursor-pointer"
-          >
-            Privacy
           </button>
 
           <a

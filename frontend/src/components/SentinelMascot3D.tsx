@@ -32,7 +32,7 @@ export const SentinelMascot3D: React.FC<{ height?: string }> = ({ height = '220p
     headGroup.position.set(0, -0.6, 0); // centered nicely in view
     scene.add(headGroup);
 
-    // Materials - MetaMask signature low-poly faceted orange and dark amber shades
+    // Materials - Sentinel signature low-poly faceted orange and dark amber shades
     const matMainOrange = new THREE.MeshLambertMaterial({ color: 0xe2761b, flatShading: true });
     const matLightOrange = new THREE.MeshLambertMaterial({ color: 0xf6851b, flatShading: true });
     const matDarkOrange = new THREE.MeshLambertMaterial({ color: 0xb84f09, flatShading: true });
@@ -120,7 +120,7 @@ export const SentinelMascot3D: React.FC<{ height?: string }> = ({ height = '220p
     const rightCheekIndices = [0, 1, 2, 0, 3, 1];
     headGroup.add(createFacetedMesh(rightCheekVertices, rightCheekIndices, matWhiteCheek));
 
-    // 5. Pointed Origami Ears (The iconic MetaMask Fox/Sentinel Ears)
+    // 5. Pointed Origami Ears (The iconic Sentinel Ears)
     // Left Ear
     const leftEarVertices = [
       -0.5, 1.6, 0.0,   // 0: base front

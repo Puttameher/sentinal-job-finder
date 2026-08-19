@@ -261,7 +261,7 @@ export const SentinelMask3D: React.FC<SentinelMask3DProps> = ({ height = '160px'
     ];
     maskGroup.add(createFacetedMesh(chinVertices, chinIndices, matDarkObsidian));
 
-    // White Chin Highlight Triangle (MetaMask style chin facet)
+    // White Chin Highlight Triangle (Sentinel faceted chin styling)
     const chinWhiteVertices = [
       0, -0.5, 1.26,
       -0.2, -0.72, 0.88,
