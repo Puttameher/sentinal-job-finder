@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --mm-bg-hero: #052824;
+    --mm-text-ice: #bbf3e5;
+    --mm-orange-main: #e2761b;
+    --mm-orange-dark: #b84f09;
+    --mm-orange-light: #f6851b;
+    --mm-teal-dark: #09332e;
+  }
+
+  body {
+    background-color: #052824;
+    color: #f3f4f6;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+.font-mm-headline {
+  font-family: 'Dela Gothic One', 'Unbounded', 'Syne', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 0.84;
+  text-transform: uppercase;
+  color: #bbf3e5;
+  display: block;
+}
+
+/* MetaMask Exact Pill Buttons */
+.mm-pill-black {
+  background-color: #0c0d0e;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  padding: 10px 22px;
+  border-radius: 9999px;
+  transition: all 0.2s ease;
+}
+
+.mm-pill-black:hover {
+  background-color: #1a1c1e;
+  transform: scale(1.03);
+}
+
+.mm-pill-white {
+  background-color: #ffffff;
+  color: #0c0d0e;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  padding: 12px 28px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.mm-pill-white:hover {
+  background-color: #f3f4f6;
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* Marquee continuous scroll */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: 200%;
+  animation: marquee-scroll 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #052824;
+}
+::-webkit-scrollbar-thumb {
+  background: #144d45;
+  border-radius: 4px;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.35s ease-out forwards;
+}
