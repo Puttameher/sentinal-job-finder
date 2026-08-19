@@ -4,9 +4,11 @@ Exposes REST APIs for job discovery, developer system telemetry, real-time
 fault simulation, and AI schema drift diagnosis.
 """
 
+import os
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .ai.drift_assistant import AIDriftAssistant
@@ -56,7 +58,7 @@ class SourceOrderRequest(BaseModel):
     priority_order: List[str]
 
 
-@app.get("/", tags=["General"])
+@app.get("/api", tags=["General"])
 async def root():
     return {
         "system": "Sentinel Job Ingestion System",
@@ -290,3 +292,18 @@ async def get_detection_surface_doc():
             "strictly_forbidden": "CAPTCHA solving services, session/cookie credential stuffing, anti-bot circumvention, authentication bypass, private data extraction"
         }
     }
+
+
+# Mount Static UI Files if compiled
+dist_candidates = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")),
+    os.path.abspath(os.path.join(os.getcwd(), "frontend", "dist")),
+    os.path.abspath(os.path.join(os.getcwd(), "dist")),
+]
+
+for d in dist_candidates:
+    if os.path.exists(d) and os.path.isdir(d):
+        app.mount("/", StaticFiles(directory=d, html=True), name="static_ui")
+        break
+
