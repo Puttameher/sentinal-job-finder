@@ -62,7 +62,7 @@ class SourceOrderRequest(BaseModel):
 api_router = APIRouter()
 
 
-@api_router.get("/", tags=["General"])
+@api_router.get("/status", tags=["General"])
 async def root():
     return {
         "system": "Sentinel Job Ingestion System",
@@ -298,8 +298,19 @@ async def get_detection_surface_doc():
     }
 
 
-# Include router under /api for all API routes
+@app.get("/api", tags=["General"])
+@app.get("/api/", tags=["General"])
+async def api_root():
+    return {
+        "system": "Sentinel Job Ingestion System",
+        "status": "OPERATIONAL",
+        "docs": "/docs",
+        "version": "1.0.0"
+    }
+
+# Include router under /api and root paths for seamless serverless routing
 app.include_router(api_router, prefix="/api")
+app.include_router(api_router)
 
 
 # Mount Static UI Files if compiled
