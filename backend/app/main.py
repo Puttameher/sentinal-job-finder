@@ -6,7 +6,7 @@ fault simulation, and AI schema drift diagnosis.
 
 import os
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Query, APIRouter
+from fastapi import FastAPI, HTTPException, Query, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -63,12 +63,22 @@ api_router = APIRouter()
 
 
 @api_router.get("/status", tags=["General"])
-async def root():
+async def status_endpoint():
     return {
         "system": "Sentinel Job Ingestion System",
         "status": "OPERATIONAL",
         "docs": "/docs",
         "version": "1.0.0"
+    }
+
+
+@api_router.get("/debug", tags=["General"])
+async def debug_endpoint(request: Request):
+    return {
+        "scope_path": request.scope.get("path"),
+        "raw_path": request.scope.get("raw_path", b"").decode("latin1", "ignore"),
+        "query_string": request.scope.get("query_string", b"").decode("latin1", "ignore"),
+        "headers": dict(request.headers),
     }
 
 
