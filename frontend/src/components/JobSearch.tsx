@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, MapPin, Building, RefreshCw, AlertTriangle, ShieldCheck, Layers, ArrowRight } from 'lucide-react';
 import { IngestionResponse, Job } from '../types';
 import { JobCard } from './JobCard';
+import { SourceCycleLoader } from './SourceCycleLoader';
 
 interface JobSearchProps {
   onSearch: (query: string, location: string, company: string, preferredSource: string) => Promise<void>;
@@ -20,9 +21,11 @@ export const JobSearch: React.FC<JobSearchProps> = ({
   const [location, setLocation] = useState('any');
   const [company, setCompany] = useState('any');
   const [preferredSource, setPreferredSource] = useState('all');
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setHasSearched(true);
     onSearch(
       query,
       location === 'any' ? '' : location,
@@ -31,19 +34,19 @@ export const JobSearch: React.FC<JobSearchProps> = ({
     );
   };
 
-  const quickSkills = ['Python', 'FastAPI', 'React', 'TypeScript', 'Distributed Systems', 'Remote'];
+  const quickSkills = ['Python', 'FastAPI', 'React', 'TypeScript', 'AI Engineer', 'DevOps', 'Remote'];
 
   return (
     <div className="space-y-8">
-      {/* Search Filter Card (Sentinel Style Card in Forest Green) */}
+      {/* Search Filter Card */}
       <div className="rounded-3xl p-8 sm:p-10 bg-[#102d24] border border-[#265949] shadow-xl text-left space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1b4337] pb-4">
           <div>
             <h3 className="text-2xl font-black text-white font-sans uppercase">
-              Opportunity Search & Filter Console
+              Opportunity Search &amp; Filter
             </h3>
             <p className="text-xs text-[#a3d9cb] mt-0.5">
-              Live normalized querying across registered APIs and XML streams.
+              Live normalized querying across RemoteOK API and WeWorkRemotely RSS.
             </p>
           </div>
           <div className="px-3 py-1 rounded-full bg-[#08201a] border border-[#1b4337] text-emerald-300 text-xs font-mono font-bold self-start">
@@ -51,7 +54,7 @@ export const JobSearch: React.FC<JobSearchProps> = ({
           </div>
         </div>
 
-        {/* Search Form Capsule */}
+        {/* Search Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-2.5 p-1.5 rounded-2xl bg-[#08201a] border border-[#265949]">
             <div className="relative flex-1">
@@ -72,7 +75,7 @@ export const JobSearch: React.FC<JobSearchProps> = ({
             >
               {loading ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Ingesting...
+                  <RefreshCw className="w-4 h-4 animate-spin" /> Fetching...
                 </>
               ) : (
                 <>
@@ -82,7 +85,7 @@ export const JobSearch: React.FC<JobSearchProps> = ({
             </button>
           </div>
 
-          {/* Filter Pills Grid */}
+          {/* Filter Pills */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs font-medium">
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[#08201a] border border-[#1b4337] text-[#c8f5d0]">
               <MapPin className="w-4 h-4 text-[#e2761b]" />
@@ -107,10 +110,10 @@ export const JobSearch: React.FC<JobSearchProps> = ({
                 onChange={(e) => setPreferredSource(e.target.value)}
                 className="bg-transparent text-white outline-none w-full cursor-pointer font-semibold"
               >
-                <option value="all" className="bg-[#102d24]">Auto Resilient Routing (All)</option>
+                <option value="all" className="bg-[#102d24]">All Sources</option>
                 <option value="remoteok" className="bg-[#102d24]">RemoteOK (Live API)</option>
                 <option value="weworkremotely_rss" className="bg-[#102d24]">WeWorkRemotely (RSS)</option>
-                <option value="sandbox_source" className="bg-[#102d24]">Controlled Sandbox</option>
+                <option value="sandbox_source" className="bg-[#102d24]">Sandbox</option>
               </select>
             </div>
 
@@ -123,8 +126,7 @@ export const JobSearch: React.FC<JobSearchProps> = ({
                 value={company === 'any' ? '' : company}
                 onChange={(e) => setCompany(e.target.value || 'any')}
                 className="bg-transparent text-white outline-none w-full placeholder-[#5c9185] font-semibold"
-              >
-              </input>
+              />
             </div>
           </div>
 
@@ -137,6 +139,7 @@ export const JobSearch: React.FC<JobSearchProps> = ({
                 key={skill}
                 onClick={() => {
                   setQuery(skill);
+                  setHasSearched(true);
                   onSearch(skill, location === 'any' ? '' : location, '', preferredSource === 'all' ? '' : preferredSource);
                 }}
                 className="px-3 py-1 rounded-lg text-xs font-semibold bg-[#08201a] hover:bg-[#153e32] text-[#c8f5d0] border border-[#1b4337] transition-all cursor-pointer"
@@ -148,12 +151,12 @@ export const JobSearch: React.FC<JobSearchProps> = ({
         </form>
       </div>
 
-      {/* Execution Telemetry Callout Bar */}
-      {ingestionData && (
+      {/* Telemetry Bar — only shown after a search */}
+      {ingestionData && hasSearched && (
         <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-[#08201a] text-xs border border-[#1b4337] text-[#c8f5d0] shadow-md">
           <div className="flex items-center gap-3 font-medium">
             <span className="font-extrabold text-white">
-              Showing {ingestionData.jobs.length} of {ingestionData.total_count} opportunities
+              {ingestionData.jobs.length} of {ingestionData.total_count} results
             </span>
             <span className="text-[#3b7363]">•</span>
             <span>
@@ -164,13 +167,11 @@ export const JobSearch: React.FC<JobSearchProps> = ({
               Latency: <strong className="text-white font-mono">{ingestionData.latency_ms}ms</strong>
             </span>
           </div>
-
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 text-emerald-400 font-bold">
               <ShieldCheck className="w-4 h-4" />
               Validation: <strong className="font-mono">{ingestionData.validation_rate}%</strong>
             </span>
-
             {ingestionData.fallback_activated && (
               <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#3d2716] text-[#f6851b] border border-[#6b3e1a] font-bold">
                 <AlertTriangle className="w-3.5 h-3.5" />
@@ -181,22 +182,35 @@ export const JobSearch: React.FC<JobSearchProps> = ({
         </div>
       )}
 
-      {/* Jobs Grid */}
-      {ingestionData && ingestionData.jobs.length > 0 ? (
+      {/* Results Area */}
+      {loading ? (
+        // Premium skeleton loader — matches job card layout
+        <SourceCycleLoader />
+      ) : hasSearched && ingestionData && ingestionData.jobs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {ingestionData.jobs.map((job) => (
             <JobCard key={job.id} job={job} onSelect={onSelectJob} />
           ))}
         </div>
-      ) : !loading ? (
+      ) : hasSearched ? (
+        // Only show "no results" if user actually searched
         <div className="py-20 text-center rounded-3xl bg-[#08201a] border border-[#1b4337] space-y-3">
           <Search className="w-9 h-9 text-[#3b7363] mx-auto" />
           <h3 className="text-base font-bold text-white">No matching opportunities found</h3>
           <p className="text-xs text-[#74ab9f] max-w-sm mx-auto">
-            Try adjusting keywords or select a different source above.
+            Try broader keywords, switch source to "All Sources", or try a different role.
           </p>
         </div>
-      ) : null}
+      ) : (
+        // Initial empty state — user hasn't searched yet
+        <div className="py-20 text-center rounded-3xl bg-[#08201a] border border-[#1b4337] space-y-3">
+          <Search className="w-9 h-9 text-[#3b7363] mx-auto opacity-50" />
+          <h3 className="text-base font-bold text-white/70">Search to discover live opportunities</h3>
+          <p className="text-xs text-[#74ab9f] max-w-sm mx-auto">
+            Enter a role, tech stack, or keyword above and hit Search.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

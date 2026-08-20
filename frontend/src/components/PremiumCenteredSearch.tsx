@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Search, ArrowRight, Zap, CheckCircle2, ExternalLink, MapPin, Building, Tag, ShieldCheck } from 'lucide-react';
+import { Search, ArrowRight, CheckCircle2, MapPin, Building, ShieldCheck } from 'lucide-react';
 import { IngestionResponse, Job } from '../types';
-import { SourceCycleLoader } from './SourceCycleLoader';
+
 
 interface PremiumCenteredSearchProps {
   onSearch: (query: string, location: string, company: string, preferredSource: string) => Promise<void>;
@@ -100,10 +100,23 @@ export const PremiumCenteredSearch: React.FC<PremiumCenteredSearchProps> = ({
           ))}
         </div>
 
-        {/* 4. Live Loading State Animation */}
+        {/* Loading shimmer — inline, no terminal */}
         {loading && (
-          <div className="w-full py-8 animate-fadeIn">
-            <SourceCycleLoader />
+          <div className="w-full py-10 flex flex-col items-center gap-4 animate-fadeIn">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+            </span>
+            <p className="text-sm text-white/50 font-medium">Fetching live opportunities…</p>
+            <div className="flex gap-3 w-full max-w-lg">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex-1 h-28 rounded-2xl bg-white/[0.04] animate-pulse border border-white/[0.06]"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                />
+              ))}
+            </div>
           </div>
         )}
 

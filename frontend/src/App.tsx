@@ -7,7 +7,6 @@ import { SentinelSectionResilience } from './components/SentinelSectionResilienc
 import { SentinelSectionStats } from './components/SentinelSectionStats';
 import { SentinelClosingPage } from './components/SentinelClosingPage';
 import { GlassNavBar, NavPage } from './components/GlassNavBar';
-import { SourceCycleLoader } from './components/SourceCycleLoader';
 import { JobDetailModal } from './components/JobDetailModal';
 import { DriftDiagnosisModal } from './components/DriftDiagnosisModal';
 import { IngestionResponse, Job, SystemHealthResponse, DriftDiagnosisResponse } from './types';
@@ -70,15 +69,13 @@ export function App() {
     [fetchHealth, API_BASE]
   );
 
-  // Initial load
+  // Initial load — only fetch health telemetry, NOT jobs.
+  // Jobs are fetched only when the user explicitly searches (avoids scroll glitch).
   useEffect(() => {
-    handleSearch();
     fetchHealth();
-
-    // Background telemetry polling every 4 seconds
     const interval = setInterval(fetchHealth, 4000);
     return () => clearInterval(interval);
-  }, [fetchHealth, handleSearch]);
+  }, [fetchHealth]);
 
   // Trigger AI Schema Drift Diagnosis
   const handleOpenDriftDiagnosis = async (sourceName: string) => {
@@ -212,7 +209,6 @@ export function App() {
             loading={loadingSearch}
             ingestionData={ingestionData}
             onSelectJob={(job) => setSelectedJob(job)}
-            loadingOverlay={loadingSearch ? <SourceCycleLoader /> : undefined}
           />
           <SentinelClosingPage onNavigate={navigateTo} />
         </main>
