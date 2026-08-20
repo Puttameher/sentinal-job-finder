@@ -134,7 +134,7 @@ export function App() {
       )}
 
       {/* Glassmorphic Floating Nav Bar */}
-      <GlassNavBar activePage={activePage} onNavigate={navigateTo} />
+      <GlassNavBar activePage={activePage} onNavigate={navigateTo} onSearchJobs={scrollToSearch} />
 
       {/* ==================== PAGES ==================== */}
 

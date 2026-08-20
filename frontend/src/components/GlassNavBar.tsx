@@ -7,9 +7,10 @@ export type NavPage = 'home' | 'liveflow';
 interface GlassNavBarProps {
   activePage: NavPage;
   onNavigate: (page: NavPage, scrollTarget?: string) => void;
+  onSearchJobs?: () => void;
 }
 
-export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate }) => {
+export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate, onSearchJobs }) => {
   const [visible, setVisible] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -29,6 +30,18 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
   ];
 
   const isShown = visible || activePage !== 'home';
+
+  const handleSearchClick = () => {
+    if (onSearchJobs) {
+      onSearchJobs();
+    } else {
+      onNavigate('home');
+      setTimeout(() => {
+        const el = document.getElementById('discover-search');
+        el?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  };
 
   return (
     <div
@@ -127,9 +140,9 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
           }}
         />
 
-        {/* CTA Button */}
+        {/* CTA Button -> Redirects to Discover Opportunities on Landing Page */}
         <button
-          onClick={() => onNavigate('liveflow')}
+          onClick={handleSearchClick}
           className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[12px] font-bold uppercase tracking-wider text-white cursor-pointer transition-all duration-250 hover:scale-[1.04] active:scale-[0.97] whitespace-nowrap"
           style={{
             background:
@@ -139,7 +152,7 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
           }}
         >
           <Search className="w-3.5 h-3.5" />
-          Search Jobs
+          Discover Opportunities
         </button>
       </nav>
     </div>

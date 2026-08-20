@@ -106,23 +106,23 @@ export const LiveFlowLoader: React.FC<LiveFlowLoaderProps> = ({ query }) => {
   const animRef = useRef<number>(0);
   const catPosRef = useRef(-110);
 
-  // Crossfade between status steps
+  // Crossfade between status steps (brisk pacing)
   useEffect(() => {
     if (stepIndex >= STATUS_STEPS.length - 1) return;
-    const fadeOut = setTimeout(() => setVisible(false), 380);
-    const swap    = setTimeout(() => { setStepIndex((s) => s + 1); setVisible(true); }, 480);
+    const fadeOut = setTimeout(() => setVisible(false), 240);
+    const swap    = setTimeout(() => { setStepIndex((s) => s + 1); setVisible(true); }, 320);
     return () => { clearTimeout(fadeOut); clearTimeout(swap); };
   }, [stepIndex]);
 
-  // Cat walk via rAF
+  // Fast cat running movement via rAF
   useEffect(() => {
-    const walk = () => {
-      catPosRef.current += 2.4;
+    const run = () => {
+      catPosRef.current += 5.2; // Fast run velocity
       if (catPosRef.current > window.innerWidth + 110) catPosRef.current = -110;
       setCatX(catPosRef.current);
-      animRef.current = requestAnimationFrame(walk);
+      animRef.current = requestAnimationFrame(run);
     };
-    animRef.current = requestAnimationFrame(walk);
+    animRef.current = requestAnimationFrame(run);
     return () => cancelAnimationFrame(animRef.current);
   }, []);
 
@@ -146,7 +146,7 @@ export const LiveFlowLoader: React.FC<LiveFlowLoaderProps> = ({ query }) => {
             textShadow: '0 0 60px rgba(52,211,153,0.18)',
             opacity: visible ? 1 : 0,
             transform: visible ? 'translateY(0)' : 'translateY(-10px)',
-            transition: 'opacity 0.18s ease, transform 0.18s ease',
+            transition: 'opacity 0.14s ease, transform 0.14s ease',
           }}
         >
           {STATUS_STEPS[stepIndex]}
@@ -169,13 +169,13 @@ export const LiveFlowLoader: React.FC<LiveFlowLoaderProps> = ({ query }) => {
             className="h-full rounded-full bg-emerald-400"
             style={{
               width: `${Math.round(((stepIndex + 1) / STATUS_STEPS.length) * 100)}%`,
-              transition: 'width 0.45s cubic-bezier(0.16,1,0.3,1)',
+              transition: 'width 0.3s cubic-bezier(0.16,1,0.3,1)',
             }}
           />
         </div>
       </div>
 
-      {/* Walking cat strip */}
+      {/* Running cat strip */}
       <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: 100 }}>
         <div
           className="absolute left-0 right-0"
@@ -189,18 +189,18 @@ export const LiveFlowLoader: React.FC<LiveFlowLoaderProps> = ({ query }) => {
         </div>
       </div>
 
-      {/* Leg animation keyframes — scoped inside the component */}
+      {/* Fast leg running animation keyframes */}
       <style>{`
         @keyframes catLegA {
-          0%   { transform-origin: top center; transform: rotate(-18deg); }
-          100% { transform-origin: top center; transform: rotate(14deg); }
+          0%   { transform-origin: top center; transform: rotate(-22deg); }
+          100% { transform-origin: top center; transform: rotate(18deg); }
         }
         @keyframes catLegB {
-          0%   { transform-origin: top center; transform: rotate(14deg); }
-          100% { transform-origin: top center; transform: rotate(-18deg); }
+          0%   { transform-origin: top center; transform: rotate(18deg); }
+          100% { transform-origin: top center; transform: rotate(-22deg); }
         }
-        .cat-leg-a { animation: catLegA 0.28s infinite alternate ease-in-out; }
-        .cat-leg-b { animation: catLegB 0.28s infinite alternate ease-in-out; }
+        .cat-leg-a { animation: catLegA 0.16s infinite alternate ease-in-out; }
+        .cat-leg-b { animation: catLegB 0.16s infinite alternate ease-in-out; }
       `}</style>
     </div>
   );
