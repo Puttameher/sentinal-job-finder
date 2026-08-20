@@ -29,10 +29,12 @@ export function App() {
   // Search section ref for smooth scrolling on Home page
   const searchRef = useRef<HTMLDivElement>(null);
 
+  const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
   // Fetch telemetry and system health
   const fetchHealth = useCallback(async () => {
     try {
-      const res = await fetch('/api/health');
+      const res = await fetch(`${API_BASE}/api/health`);
       if (res.ok) {
         const data: SystemHealthResponse = await res.json();
         setSystemHealth(data);
@@ -40,7 +42,7 @@ export function App() {
     } catch (err) {
       console.error('Error fetching system health:', err);
     }
-  }, []);
+  }, [API_BASE]);
 
   // Fetch jobs
   const handleSearch = useCallback(
@@ -53,7 +55,7 @@ export function App() {
         if (company) params.append('company', company);
         if (preferredSource) params.append('preferred_source', preferredSource);
 
-        const res = await fetch(`/api/jobs?${params.toString()}`);
+        const res = await fetch(`${API_BASE}/api/jobs?${params.toString()}`);
         if (res.ok) {
           const data: IngestionResponse = await res.json();
           setIngestionData(data);
@@ -65,7 +67,7 @@ export function App() {
         fetchHealth(); // refresh telemetry
       }
     },
-    [fetchHealth]
+    [fetchHealth, API_BASE]
   );
 
   // Initial load
@@ -83,7 +85,7 @@ export function App() {
     setDriftModalOpen(true);
     setLoadingDrift(true);
     try {
-      const res = await fetch(`/api/ai/diagnose-drift?source_name=${encodeURIComponent(sourceName)}`, {
+      const res = await fetch(`${API_BASE}/api/ai/diagnose-drift?source_name=${encodeURIComponent(sourceName)}`, {
         method: 'POST',
       });
       if (res.ok) {

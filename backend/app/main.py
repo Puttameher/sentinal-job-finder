@@ -6,7 +6,7 @@ fault simulation, and AI schema drift diagnosis.
 
 import os
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -58,7 +58,11 @@ class SourceOrderRequest(BaseModel):
     priority_order: List[str]
 
 
-@app.get("/api", tags=["General"])
+# API Router - Allows serving routes with /api prefix as well as root-relative for serverless rewrites
+api_router = APIRouter()
+
+
+@api_router.get("/", tags=["General"])
 async def root():
     return {
         "system": "Sentinel Job Ingestion System",
@@ -68,7 +72,7 @@ async def root():
     }
 
 
-@app.get("/api/jobs", response_model=IngestionResponse, tags=["Jobs"])
+@api_router.get("/jobs", response_model=IngestionResponse, tags=["Jobs"])
 async def get_jobs(
     query: Optional[str] = Query(None, description="Keywords / title"),
     location: Optional[str] = Query(None, description="Location filter"),
@@ -92,14 +96,14 @@ async def get_jobs(
     return await orchestrator.ingest_jobs(params)
 
 
-@app.get("/api/health", response_model=SystemHealthResponse, tags=["Observability"])
+@api_router.get("/health", response_model=SystemHealthResponse, tags=["Observability"])
 async def get_system_health():
     """Returns real-time health scores, circuit breaker states, and metrics for all sources."""
     primary_source = source_registry.get_ordered_source_names()[0]
     return health_monitor.get_system_health(active_primary=primary_source)
 
 
-@app.get("/api/sources", tags=["Observability"])
+@api_router.get("/sources", tags=["Observability"])
 async def list_sources():
     """Returns configured source registry and active priority fallback order."""
     sources_info = []
@@ -123,13 +127,13 @@ async def list_sources():
     }
 
 
-@app.get("/api/telemetry", response_model=List[TelemetryEvent], tags=["Observability"])
+@api_router.get("/telemetry", response_model=List[TelemetryEvent], tags=["Observability"])
 async def get_telemetry():
     """Returns recent timestamped activity and resilience events."""
     return health_monitor._events[:50]
 
 
-@app.post("/api/demo/simulate", tags=["Demo & Resilience Testing"])
+@api_router.post("/demo/simulate", tags=["Demo & Resilience Testing"])
 async def simulate_fault(req: DemoSimulationRequest):
     """
     Fault injection control panel for live resilience demonstration.
@@ -219,7 +223,7 @@ async def simulate_fault(req: DemoSimulationRequest):
         raise HTTPException(status_code=400, detail=f"Unknown simulation action '{req.action}'")
 
 
-@app.post("/api/priority", tags=["Orchestration"])
+@api_router.post("/priority", tags=["Orchestration"])
 async def update_source_priority(req: SourceOrderRequest):
     """Dynamically change fallback priority sequence."""
     try:
@@ -229,13 +233,13 @@ async def update_source_priority(req: SourceOrderRequest):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.get("/api/drift/report/{source_name}", response_model=Optional[DriftReport], tags=["Schema Drift"])
+@api_router.get("/drift/report/{source_name}", response_model=Optional[DriftReport], tags=["Schema Drift"])
 async def get_drift_report(source_name: str):
     """Retrieve the latest schema drift evaluation report for a given source."""
     return orchestrator.get_last_drift_report(source_name)
 
 
-@app.post("/api/ai/diagnose-drift", response_model=DriftDiagnosisResponse, tags=["AI Diagnostics"])
+@api_router.post("/ai/diagnose-drift", response_model=DriftDiagnosisResponse, tags=["AI Diagnostics"])
 async def diagnose_schema_drift(source_name: str = Query("sandbox_source")):
     """
     Triggers AI-assisted schema drift diagnosis. Analyzes missing keys vs observed keys,
@@ -260,7 +264,7 @@ async def diagnose_schema_drift(source_name: str = Query("sandbox_source")):
     return await ai_drift_assistant.diagnose_drift(report)
 
 
-@app.get("/api/detection-surface", tags=["Documentation"])
+@api_router.get("/detection-surface", tags=["Documentation"])
 async def get_detection_surface_doc():
     """Returns technical overview of detection surface, pacing policy, and ethical stopping boundary."""
     return {
@@ -294,6 +298,11 @@ async def get_detection_surface_doc():
     }
 
 
+# Include router under both /api and root paths for seamless serverless routing
+app.include_router(api_router, prefix="/api")
+app.include_router(api_router)
+
+
 # Mount Static UI Files if compiled
 dist_candidates = [
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")),
@@ -306,4 +315,3 @@ for d in dist_candidates:
     if os.path.exists(d) and os.path.isdir(d):
         app.mount("/", StaticFiles(directory=d, html=True), name="static_ui")
         break
-

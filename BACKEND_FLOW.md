@@ -1,201 +1,208 @@
-# Sentinel Backend Architecture & Ingestion Flow
+# Sentinel Backend Architecture & Ingestion Flow Master Guide
 
-This document provides a comprehensive technical breakdown of the **Sentinel Backend Architecture**, explaining how requests flow through the resilient ingestion pipeline, how fault isolation and circuit breakers operate, and how telemetry and AI schema drift diagnostics function in production.
+> **Production-Grade Resilient Data Ingestion Engine**  
+> Built with **Python 3.12**, **FastAPI**, **Pydantic v2**, **httpx**, and **defusedxml**.
 
 ---
 
 ## 1. High-Level Architecture Overview
 
-Sentinel is built using **Python 3.12**, **FastAPI**, **Pydantic v2**, **httpx**, and **defusedxml**. It is designed around modular, decoupled components conforming to the **Open-Closed Principle** and the **Single Responsibility Principle**.
+Sentinel coordinates multi-source data ingestion, fault isolation, strict invariant validation, and real-time observability. The architecture is decoupled into modular components conforming to the **Single Responsibility Principle** and **Open-Closed Principle**.
 
 ```
-                           CLIENT (React / Browser)
-                                      │
-                                      ▼  HTTP GET /api/jobs
+                           CLIENT (React / Three.js Frontend)
+                                       │
+                                       ▼  HTTP GET /api/jobs?query=python
                          ┌───────────────────────────┐
-                         │   FastAPI API Routing     │ (main.py)
+                         │    FastAPI Route Layer    │ (app/main.py)
                          └─────────────┬─────────────┘
                                        │
                                        ▼
                          ┌───────────────────────────┐
-                         │   Ingestion Orchestrator  │ (orchestrator.py)
+                         │   Ingestion Orchestrator  │ (app/ingestion/orchestrator.py)
                          └─────────────┬─────────────┘
                                        │
            ┌───────────────────────────┴───────────────────────────┐
            ▼                                                       ▼
 ┌───────────────────────┐                               ┌───────────────────────┐
-│    Source Registry    │ (registry.py)                 │  SourceHealthMonitor  │ (monitor.py)
+│    Source Registry    │ (app/sources/registry.py)     │  SourceHealthMonitor  │ (app/health/monitor.py)
 └──────────┬────────────┘                               └───────────────────────┘
            │
-           │ Resolves Priority Chain (e.g. RemoteOK -> WWR RSS -> Sandbox)
+           │ Resolves Dynamic Priority Tier: RemoteOK (API) ➔ WWR (RSS) ➔ Sandbox
            ▼
 ┌───────────────────────────────────────────────────────────────────────────────┐
-│                        RESILIENT INGESTION PIPELINE                           │
+│                      PIPELINE EXECUTION PER SOURCE TIER                       │
 │                                                                               │
-│  1. Check Circuit Breaker State (CLOSED / OPEN / HALF_OPEN)                   │
-│     └── If OPEN: Record Telemetry Event & Fallback to Next Source Tier        │
+│  [Step 1] Circuit Breaker Check                                               │
+│           • CLOSED    ➔ Allow request execution                               │
+│           • OPEN      ➔ Fail fast (<1ms); trigger deterministic fallback      │
+│           • HALF_OPEN ➔ Send single canary probe request                      │
 │                                                                               │
-│  2. Request Pacer & Jittered Retry Execution                                  │
-│     └── Enforces 0.3s minimum gap + Gaussian Jitter + Bounded Exponential     │
-│         Backoff (Base: 1.0s, Max Retries: 2, Max Wait: 4.0s)                  │
+│  [Step 2] Request Pacer & Gaussian Jitter                                     │
+│           • Enforces 0.3s minimum polite gap between requests                 │
+│           • Adds random Gaussian jitter to destroy periodic bot signatures    │
+│           • Executes bounded exponential backoff on transient network faults  │
 │                                                                               │
-│  3. Raw Ingestion (JobSource.fetch_raw)                                       │
-│     ├── RemoteOK: Async HTTP REST API (httpx.AsyncClient)                     │
-│     ├── WeWorkRemotely: XML/RSS Stream (defusedxml / xmltodict)               │
-│     └── Sandbox: Stateful Controlled Fault Injection Mock                     │
+│  [Step 3] Raw Upstream Fetch (fetch_raw)                                      │
+│           • RemoteOK: Async REST JSON via httpx.AsyncClient                   │
+│           • WeWorkRemotely: XML RSS stream parsed via safe defusedxml         │
+│           • Sandbox: Controlled stateful chaos simulation engine              │
 │                                                                               │
-│  4. Normalization (JobSource.normalize)                                       │
-│     └── Transforms source-specific payload format into unvalidated Dicts      │
+│  [Step 4] Adapter Normalization (normalize)                                   │
+│           • Transforms source-specific payload format into unvalidated Dicts  │
 │                                                                               │
-│  5. Schema Invariant Validation (BatchValidator)                              │
-│     ├── Valid Records   ──> Normalized Pydantic Job Instances                 │
-│     └── Malformed Items ──> Isolated into Error Telemetry (Batch Survives)    │
+│  [Step 5] Pydantic Invariant Batch Validation (validate_batch)                │
+│           • Valid Records   ➔ Typed canonical Job models                      │
+│           • Corrupt Records ➔ Quarantined & logged (Batch survives!)          │
 │                                                                               │
-│  6. Schema Drift Detection (SchemaDriftDetector)                              │
-│     └── Compares raw payload keys against expected schema signatures          │
+│  [Step 6] Schema Drift Analysis (detect_drift)                                │
+│           • Compares raw payload keys against canonical schema signatures     │
+│           • Alerts telemetry if upstream changes field names                  │
 │                                                                               │
-│  7. Telemetry & Metric Ledger (SourceHealthMonitor)                           │
-│     └── Updates failure rates, moving-average latencies, and circuit states   │
+│  [Step 7] Telemetry & Metrics Ledger (log_event / record_success)             │
+│           • Updates moving-average latency, health score, and circuit metrics │
 └──────────────────────────────────────┬────────────────────────────────────────┘
                                        │
                                        ▼
-                         ┌───────────────────────────┐
-                         │ Filter, Sort & Paginate   │ (In-Memory Filtering)
-                         └─────────────┬─────────────┘
-                                       │
-                                       ▼  JSON IngestionResponse
-                               CLIENT RESPONSE
+                       Canonical IngestionResponse JSON
 ```
 
 ---
 
-## 2. Step-by-Step Request Lifecycle Trace
+## 2. Detailed Step-by-Step Request Lifecycle
 
-When a user searches for jobs (e.g., `GET /api/jobs?query=python&location=remote`):
+When a user triggers a search (e.g., `GET /api/jobs?query=python&location=remote`):
 
-### Step 1: Routing & Parameter Parsing (`app/main.py`)
-- The request hits the `/api/jobs` endpoint with query parameters encapsulated in `JobSearchParams`.
-- The endpoint delegates directly to `IngestionOrchestrator.ingest_jobs(params)`.
+### Step 1: Request Entry & Parameter Binding (`app/main.py`)
+- FastAPI receives the request and validates query parameters using `JobSearchParams`.
+- Delegates execution to the global singleton `IngestionOrchestrator`.
 
-### Step 2: Fallback Chain Resolution (`app/sources/registry.py`)
-- The `SourceRegistry` provides an ordered list of connector names to attempt.
-- If the user specified a `preferred_source` (e.g., `remoteok`), that source is placed first, followed by deterministic fallback tiers (`weworkremotely_rss`, `sandbox_source`).
+### Step 2: Source Priority Chain Resolution (`app/sources/registry.py`)
+- The orchestrator queries the `SourceRegistry` to obtain the active tier priority order:
+  1. **Primary Tier:** `RemoteOKJobSource` (Live REST API)
+  2. **Secondary Tier:** `WeWorkRemotelyRSSSource` (Live XML/RSS Feed)
+  3. **Fallback Tier:** `SandboxJobSource` (Synthetic Controlled Sandbox)
+- If the user explicitly provided `preferred_source`, that source is promoted to the front of the chain.
 
 ### Step 3: Circuit Breaker Inspection (`app/resilience/circuit_breaker.py`)
-For each source in the chain:
-- The orchestrator queries `circuit_breaker.allow_request()`.
-- **Case A (`CLOSED`):** Breaker allows the request.
-- **Case B (`OPEN`):** If within cooldown (default: 30s), the breaker **fails fast immediately** without wasting network bandwidth or hammering a degraded upstream host. The orchestrator records a `FALLBACK_DIVERSIFICATION` event and seamlessly advances to the next source.
-- **Case C (`HALF_OPEN`):** Cooldown has expired. The breaker allows a single "canary" request through to probe host recovery.
+- Before making any network calls, the orchestrator inspects the source's `CircuitBreaker`:
+  - **`CLOSED` (Healthy):** Request proceeds to Step 4.
+  - **`OPEN` (Tripped):** If the source experienced 3 consecutive failures within the failure window, the circuit breaker immediately **fails fast** without opening a network socket. The orchestrator logs a `CIRCUIT_BLOCKED_SKIPPING_SOURCE` event and seamlessly diverts to the next source tier.
+  - **`HALF_OPEN` (Canary Probe):** If the 30-second cooldown elapsed, the breaker allows a single canary probe through to test if upstream recovered.
 
-### Step 4: Paced Network Fetch (`app/resilience/pacer.py`)
-- The `RequestPacer` checks when the source was last queried.
-- If less than `min_interval_seconds` (default: 0.3s) has elapsed, it sleeps for the remaining duration plus randomized Gaussian jitter (`±0.05s`). This prevents detectable periodic timing signatures.
-- If a network error or 5xx occurs, `pacer.execute_with_retry()` executes a bounded exponential backoff ($wait = \min(base \times 2^{attempt} + jitter, max\_wait)$) up to 2 retry attempts.
+### Step 4: Paced & Jittered Execution (`app/resilience/pacer.py`)
+- Upstream requests pass through the `RequestPacer`:
+  - **Minimum Request Gap:** Enforces a minimum interval (0.3s) between calls to respect rate limits.
+  - **Gaussian Randomized Jitter:** Adds random non-uniform delays to prevent periodic WAF fingerprinting.
+  - **Bounded Exponential Backoff:** On transient `429` (Rate Limited) or `503` (Unavailable) responses, retries up to 2 times with exponential wait:
+    $$\text{Wait Time} = \min(\text{base\_delay} \times 2^{\text{attempt}} + \text{jitter}, \text{max\_wait})$$
 
-### Step 5: Data Connector Execution (`app/sources/`)
-- **RemoteOK Connector (`remoteok.py`):** Makes an asynchronous GET request to `https://remoteok.com/api` with custom `User-Agent` headers matching modern browser Client Hints.
-- **RSS Connector (`rss.py`):** Fetches the XML channel feed from `https://weworkremotely.com/categories/remote-programming-jobs.rss` and parses it safely using `defusedxml` to prevent XML entity expansion attacks.
-- **Sandbox Connector (`sandbox.py`):** For controlled chaos testing, inspects its active fault mode (`http_500`, `rate_limit_429`, `schema_drift`, `malformed_json`, `empty_response`, `none`) and yields corresponding synthetic responses.
+### Step 5: Raw Ingestion & Security Parsing (`app/sources/`)
+- **RemoteOK (`remoteok.py`):** Uses asynchronous `httpx.AsyncClient` with custom headers (`User-Agent: Sentinel/1.0`, `Accept: application/json`).
+- **WeWorkRemotely (`rss.py`):** Uses `defusedxml` to parse the live RSS XML feed, protecting against XML entity expansion (Billion Laughs) attacks.
+- **Sandbox (`sandbox.py`):** Deterministic mock engine capable of simulating 500 Outages, 429 Rate Limits, Schema Mutations, and Malformed Records for live chaos testing.
 
-### Step 6: Invariant Batch Validation (`app/validation/validator.py`)
-- Raw dictionaries are validated against the strict **Pydantic v2 `Job` schema**.
-- **Fault Isolation Principle:** If 3 out of 50 records contain invalid URLs or missing titles, the `BatchValidator` extracts the 3 malformed records into telemetry error logs, and allows the 47 valid records to proceed. **The entire search request is never terminated due to partial corruptions.**
+### Step 6: Canonical Normalization (`JobSource.normalize`)
+- Converts source-specific schemas into a standardized internal representation:
+  - Maps unique fields (e.g., `position` or `job_headline` $\to$ `title`).
+  - Cleans HTML tags from job descriptions using regex sanitization.
+  - Extracts salary minimum/maximum and normalizes currency codes.
+  - Formats timestamps to ISO-8601 strings.
 
-### Step 7: Schema Drift Analysis (`app/validation/drift_detector.py`)
-- Compares the set of raw keys against the connector's registered expected keys.
-- If keys are missing (e.g. `position` replaced by `job_headline`), a `DriftReport` is generated with `drift_detected=True`.
-- This automatically triggers an alert in the `SourceHealthMonitor` for developer inspection.
+### Step 7: Batch Invariant Validation & Quarantine (`app/validation/validator.py`)
+- The `BatchValidator` evaluates records using Pydantic `Job` schema invariants:
+  - `title`: Non-empty string.
+  - `company`: Non-empty string.
+  - `url`: Must be a valid `http://` or `https://` URL.
+  - `tags`: Array of clean string tags.
+- **Zero-Blast Radius Quarantine:** If record #14 in a batch of 50 has a missing title, record #14 is quarantined and logged to telemetry. The remaining 49 valid jobs are returned successfully. The batch is **never** failed due to individual corrupt records.
 
-### Step 8: Telemetry & State Updates (`app/health/monitor.py`)
-- Upon success: Recorded request latency, increments valid record counters, and resets consecutive failure counters in the circuit breaker.
-- Upon failure: Increments failure counters. If consecutive failures reach `failure_threshold` (default: 3), the breaker transitions to `OPEN`.
+### Step 8: Schema Drift Detection (`app/validation/drift_detector.py`)
+- The `SchemaDriftDetector` computes the symmetric difference between expected keys and raw received payload keys:
+  - **Missing Keys:** Upstream dropped or renamed a critical field.
+  - **New / Unexpected Keys:** Upstream introduced new fields.
+- If drift threshold ($>30\%$ missing critical keys or $<50\%$ validation pass rate) is breached, an anomaly report is generated and logged to the telemetry ledger.
 
-### Step 9: Filtering & Client Response
-- The validated `Job` instances are filtered in-memory by query, location, and company.
-- Returned to the client as an `IngestionResponse` containing:
-  - List of `Job` objects
-  - `source_used`
-  - `fallback_activated` (boolean)
-  - `latency_ms`
-  - `validation_rate` (percentage)
+### Step 9: Telemetry & Moving Average Ledger (`app/health/monitor.py`)
+- Records latency in a sliding window (calculates moving-average latency).
+- Updates source health score ($0 - 100$) based on success/failure ratio.
+- Logs structured events to a ring-buffer journal (`INFO`, `WARN`, `ERROR`, `SUCCESS`).
 
----
-
-## 3. Circuit Breaker State Machine
-
-The Circuit Breaker prevents cascading system failures and protects upstream providers from being overwhelmed when degraded:
-
-```
-                  ┌──────────────────────────────┐
-                  │                              │
-                  │        CLOSED (Healthy)      │ ◄─────────────────────────┐
-                  │   All requests permitted     │                           │
-                  │                              │                           │
-                  └──────────────┬───────────────┘                           │
-                                 │                                           │
-             3 Consecutive Failures Reach Threshold                          │
-                                 │                                           │
-                                 ▼                                           │
-                  ┌──────────────────────────────┐                           │
-                  │                              │                           │
-                  │        OPEN (Tripped)        │                           │
-                  │   Fail-fast without network  │                           │
-                  │                              │                           │
-                  └──────────────┬───────────────┘                           │
-                                 │                                           │
-                     Cooldown Timer (30s) Expires                            │
-                                 │                                           │
-                                 ▼                                           │
-                  ┌──────────────────────────────┐                           │
-                  │                              │                           │
-                  │     HALF_OPEN (Probing)      │                           │
-                  │     Single canary probe      │                           │
-                  │                              │                           │
-                  └──────────────┬───────────────┘                           │
-                                 │                                           │
-                    ┌────────────┴────────────┐                              │
-                    │                         │                              │
-          Canary Probe Fails         Canary Probe Succeeds                   │
-                    │                         │                              │
-                    ▼                         └──────────────────────────────┘
-            Transitions to OPEN
-```
+### Step 10: Automatic Fallback Resolution
+- If all attempts on the primary source fail (e.g., HTTP 500 or Circuit Breaker OPEN), the orchestrator automatically executes the identical pipeline on the **Secondary Source** (`WeWorkRemotely`).
+- The client receives a successful response with `fallback_activated: true` and `source_used: "weworkremotely_rss"`.
 
 ---
 
-## 4. AI Schema Drift Diagnostic Engine (`app/ai/drift_assistant.py`)
+## 3. Resilience Component Architecture
 
-When an upstream platform alters its JSON schema or markup structure, Sentinel detects it and assists engineers in resolving it:
-
-1. **Detection:** `SchemaDriftDetector` computes the symmetric difference between `expected_keys` and `observed_keys`.
-2. **Semantic Similarity Heuristic:** Uses fuzzy Levenshtein distance, prefix matching, and token overlap to match renamed fields (e.g. `position` $\to$ `job_headline` with 85% confidence).
-3. **LLM Diagnostic Mode:** If an API key is configured (`OPENAI_API_KEY` or `GEMINI_API_KEY`), prompts an LLM with the missing/unexpected keys to generate code-level adapter migrations.
-4. **Human-in-the-Loop Safety Rule:** AI generates **advisory migration proposals and field translations**, but **never mutates production code autonomously without developer approval**.
-
----
-
-## 5. Summary of Key Files
-
-| Module | File Path | Core Responsibility |
+| Component | File Path | Core Responsibility |
 | :--- | :--- | :--- |
-| **API Server** | `app/main.py` | FastAPI app definition, CORS, endpoints (`/api/jobs`, `/api/health`, `/api/demo/simulate`, `/api/ai/diagnose-drift`). |
-| **Orchestrator** | `app/ingestion/orchestrator.py` | Coordinates the end-to-end resilient ingestion pipeline. |
-| **Registry** | `app/sources/registry.py` | Maintains registered connectors and priority fallback chains. |
-| **Circuit Breaker** | `app/resilience/circuit_breaker.py` | 3-state state machine managing failover and recovery. |
-| **Request Pacer** | `app/resilience/pacer.py` | Enforces rate limits, jitter, and bounded exponential retries. |
-| **Pydantic Models** | `app/models/job.py`, `health.py`, `drift.py` | Strongly-typed data models for jobs, telemetry, and drift diagnostics. |
-| **Sources** | `app/sources/remoteok.py`, `rss.py`, `sandbox.py` | Connectors for REST API, XML RSS, and Controlled Chaos Sandbox. |
-| **Validator** | `app/validation/validator.py` | Batch record validation with malformed record isolation. |
-| **Drift Detector** | `app/validation/drift_detector.py` | Structural variance analyzer. |
-| **AI Assistant** | `app/ai/drift_assistant.py` | Semantic and LLM field migration diagnostic engine. |
-| **Telemetry Monitor** | `app/health/monitor.py` | Rolling latency calculations, failure tracking, and activity logging. |
+| **Circuit Breaker** | [`app/resilience/circuit_breaker.py`](file:///d:/youtube/job%20scraper/backend/app/resilience/circuit_breaker.py) | 3-state finite state machine (`CLOSED` $\to$ `OPEN` $\to$ `HALF_OPEN`) with configurable failure threshold (3) and cooldown (30s). |
+| **Request Pacer** | [`app/resilience/pacer.py`](file:///d:/youtube/job%20scraper/backend/app/resilience/pacer.py) | Bounded exponential backoff with Gaussian jitter and minimum interval enforcement. |
+| **Batch Validator** | [`app/validation/validator.py`](file:///d:/youtube/job%20scraper/backend/app/validation/validator.py) | Strict typed invariant verification with single-record quarantine. |
+| **Drift Detector** | [`app/validation/drift_detector.py`](file:///d:/youtube/job%20scraper/backend/app/validation/drift_detector.py) | Key signature comparison and validation rate threshold monitoring. |
+| **AI Drift Assistant** | [`app/ai/drift_assistant.py`](file:///d:/youtube/job%20scraper/backend/app/ai/drift_assistant.py) | Semantic LLM-assisted advisory migration proposer (Human-in-the-loop). |
+| **Health Monitor** | [`app/health/monitor.py`](file:///d:/youtube/job%20scraper/backend/app/health/monitor.py) | Moving-average latency tracker, health score calculator, and event ring-buffer. |
 
 ---
 
-## 6. Interview Speaking Points (2-Minute Pitch)
+## 4. API Endpoints Reference
 
-1. **Architecture Over Scraping:** *"Instead of relying on brittle headless browser scraping that breaks on every DOM tweak and gets blocked by Cloudflare, Sentinel uses structured public API and RSS streams backed by a 3-state Circuit Breaker and request pacer."*
-2. **Graceful Fault Isolation:** *"When upstream data is partially corrupted, our Pydantic Batch Validator isolates invalid records into telemetry error logs without failing the user's search request."*
-3. **Zero-Downtime Resilience:** *"If a primary data source fails 3 consecutive times, the circuit trips to OPEN, traffic immediately diverts to secondary fallbacks, and automatic canary probes test recovery after a 30-second cooldown."*
-4. **Safe AI Advisory:** *"Schema drift is detected mathematically at the key level, and our AI Drift Assistant proposes confidence-scored field translations without ever mutating production code unsafely."*
+| Method | Route | Description |
+| :--- | :--- | :--- |
+| **`GET`** | `/api` | Root status endpoint (`OPERATIONAL`, version, docs link). |
+| **`GET`** | `/api/jobs` | Discovers & normalizes jobs across the resilient pipeline. Supports `query`, `location`, `company`, `preferred_source`, `limit`, `offset`. |
+| **`GET`** | `/api/health` | Returns real-time health scores, circuit breaker states, and moving average latencies for all sources. |
+| **`GET`** | `/api/sources` | Returns active source registry and priority sequence. |
+| **`GET`** | `/api/telemetry` | Returns the recent 50 structured resilience events. |
+| **`POST`** | `/api/demo/simulate` | Fault injection trigger (`simulate_500`, `simulate_429`, `simulate_drift`, `simulate_malformed`, `trip_circuit`, `restore`). |
+| **`POST`** | `/api/priority` | Dynamically updates fallback priority order at runtime. |
+| **`POST`** | `/api/ai/diagnose-drift` | Triggers AI schema drift analysis and adapter patch proposal. |
+| **`GET`** | `/api/detection-surface` | Technical specification of detection surfaces, WAF mitigation, and ethical boundaries. |
+| **`GET`** | `/docs` | Interactive Swagger UI API Documentation. |
+
+---
+
+## 5. Automated Verification & Testing
+
+The backend includes a **17-test Pytest suite** covering all resilience invariants:
+
+```bash
+cd backend
+pytest -v
+```
+
+### Verified Test Matrix:
+1. `test_circuit_breaker_starts_closed` ✅
+2. `test_circuit_trips_after_consecutive_failures` ✅
+3. `test_circuit_half_open_probe_success` ✅
+4. `test_circuit_half_open_probe_failure_reopens` ✅
+5. `test_batch_validator_isolates_corrupt_records` ✅
+6. `test_batch_validator_validates_clean_records` ✅
+7. `test_drift_detector_flags_missing_keys` ✅
+8. `test_drift_detector_flags_low_validation_rate` ✅
+9. `test_orchestrator_successful_primary_ingestion` ✅
+10. `test_orchestrator_fallback_on_circuit_trip` ✅
+11. `test_orchestrator_fallback_on_http_error` ✅
+12. `test_orchestrator_quarantines_and_returns_valid_jobs` ✅
+13. `test_remoteok_source_normalization` ✅
+14. `test_rss_source_safe_xml_parsing` ✅
+15. `test_sandbox_fault_injection_modes` ✅
+16. `test_ai_drift_assistant_generates_advisory_mappings` ✅
+17. `test_pacer_applies_gaussian_jitter` ✅
+
+---
+
+## 6. Interview & Assessment Talking Points
+
+When explaining this architecture in technical discussions:
+
+1. **Why Circuit Breakers instead of endless retries?**
+   *Endless retries cause the "thundering herd" problem and cascade failures to upstream servers. A 3-state circuit breaker fails fast in <1ms, shielding upstream systems while immediately serving users via secondary fallback tiers.*
+
+2. **How does Sentinel handle anti-bot and rate limits?**
+   *By enforcing minimum request intervals and applying randomized Gaussian jitter, Sentinel eliminates periodic polling signatures without resorting to illegal CAPTCHA solving or credential stuffing.*
+
+3. **How does Sentinel handle upstream schema changes?**
+   *Through typed Pydantic invariants, corrupted records are isolated at the individual level without crashing the batch. The Schema Drift Radar detects signature anomalies and leverages an AI assistant to propose human-reviewed adapter patches.*
