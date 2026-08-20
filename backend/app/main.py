@@ -298,9 +298,8 @@ async def get_detection_surface_doc():
     }
 
 
-# Include router under both /api and root paths for seamless serverless routing
+# Include router under /api for all API routes
 app.include_router(api_router, prefix="/api")
-app.include_router(api_router)
 
 
 # Mount Static UI Files if compiled

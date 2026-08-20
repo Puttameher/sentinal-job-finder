@@ -1,9 +1,8 @@
 {
-  "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "functions": {
-    "api/index.py": {
+    "api/*.py": {
       "includeFiles": "backend/**",
       "maxDuration": 30
     }
@@ -22,7 +21,7 @@
       "destination": "/api/index.py"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api|docs|openapi.json).*)",
       "destination": "/index.html"
     }
   ]
