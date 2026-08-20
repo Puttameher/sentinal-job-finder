@@ -121,7 +121,13 @@ class RSSJobSource(JobSource):
                 tags.append(category.lower())
 
             # Infer tech tags from title
-            tech_keywords = ["python", "react", "typescript", "javascript", "golang", "ruby", "django", "fastapi", "ai", "node"]
+            tech_keywords = [
+                "python", "react", "typescript", "javascript", "golang", "ruby",
+                "django", "fastapi", "ai", "node", "engineer", "devops", "ml",
+                "machine learning", "backend", "frontend", "fullstack", "full-stack",
+                "senior", "lead", "staff", "rust", "java", "scala", "kubernetes",
+                "docker", "aws", "cloud", "data", "analytics", "security"
+            ]
             for kw in tech_keywords:
                 if kw in raw_title.lower() and kw not in tags:
                     tags.append(kw)

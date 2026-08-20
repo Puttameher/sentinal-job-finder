@@ -250,29 +250,29 @@ class IngestionOrchestrator:
         )
 
     def _apply_client_filters(self, jobs: List[Job], params: JobSearchParams) -> List[Job]:
-        """In-memory filtering for responsive search criteria with multi-token keyword support."""
+        """Smart in-memory filtering: exact phrase OR any-token matching across title, tags, description, company."""
         results = jobs
 
         if params.query:
             raw_q = params.query.strip().lower()
-            tokens = [t for t in raw_q.split() if len(t) > 1 or t in ("ai", "ml", "go", "c#", "ui", "ux")]
-            
+            # Short single-char tokens like 'ai', 'ml', 'go' are valid
+            tokens = [t for t in raw_q.split() if len(t) >= 2 or t in ("ai", "ml", "go", "c#", "ui", "ux")]
+
             def matches_query(j: Job) -> bool:
                 title_lower = j.title.lower()
                 desc_lower = j.description.lower()
                 comp_lower = j.company.lower()
                 tags_lower = [t.lower() for t in j.tags]
-                
-                # Check exact phrase first
-                if raw_q in title_lower or raw_q in desc_lower or any(raw_q in t for t in tags_lower):
+                haystack = f"{title_lower} {desc_lower} {comp_lower} {' '.join(tags_lower)}"
+
+                # 1. Exact phrase match
+                if raw_q in haystack:
                     return True
-                
-                # Check if all tokens match across title, tags, company, or description
+
+                # 2. ANY token match (so "AI Engineer" finds jobs with "engineer" in title even if no "ai")
                 if tokens:
-                    return all(
-                        tok in title_lower or tok in desc_lower or tok in comp_lower or any(tok in t for t in tags_lower)
-                        for tok in tokens
-                    )
+                    return any(tok in haystack for tok in tokens)
+
                 return False
 
             results = [j for j in results if matches_query(j)]
@@ -291,3 +291,4 @@ class IngestionOrchestrator:
                 results = [j for j in results if any(t_lower in jt.lower() for jt in j.tags)]
 
         return results
+

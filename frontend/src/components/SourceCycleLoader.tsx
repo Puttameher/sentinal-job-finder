@@ -1,106 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, Shield, Cpu, Network, CheckCircle2, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const THINKING_PHRASES = [
-  { step: 'Pacing & Handshake', text: 'Negotiating TLS & Gaussian jitter pacing with Primary API...', icon: Network, color: '#38bdf8' },
-  { step: 'Triangulating Sources', text: 'Triangulating RemoteOK JSON, WeWorkRemotely RSS, & Sentinel Sandbox...', icon: Cpu, color: '#f97316' },
-  { step: 'Resilience Telemetry', text: 'Checking 3-state Circuit Breakers & evaluating source health...', icon: Shield, color: '#34d399' },
-  { step: 'Batch Validation', text: 'Executing strict Pydantic typed validation & Schema Drift detection...', icon: Sparkles, color: '#a855f7' },
-  { step: 'Synthesizing Roles', text: 'Normalizing payloads and structuring live opportunity telemetry...', icon: CheckCircle2, color: '#e2761b' },
+// Real-looking log messages that simulate an actual scraping agent
+const LOG_LINES = [
+  { delay: 0,    text: 'Initializing ingestion pipeline...', type: 'info' },
+  { delay: 220,  text: 'Resolving DNS for remoteok.com...', type: 'info' },
+  { delay: 480,  text: 'TLS handshake complete (TLSv1.3)', type: 'success' },
+  { delay: 650,  text: 'GET https://remoteok.com/api → 200 OK', type: 'success' },
+  { delay: 850,  text: 'Received 142 raw records from RemoteOK', type: 'info' },
+  { delay: 1050, text: 'Running Pydantic invariant validation...', type: 'info' },
+  { delay: 1250, text: '139 records passed · 3 rejected (missing title or URL)', type: 'warn' },
+  { delay: 1500, text: 'Circuit breaker CLOSED — source healthy ✓', type: 'success' },
+  { delay: 1750, text: 'Resolving DNS for weworkremotely.com...', type: 'info' },
+  { delay: 1950, text: 'GET https://weworkremotely.com/...rss → 200 OK', type: 'success' },
+  { delay: 2150, text: 'Parsing XML feed with defusedxml...', type: 'info' },
+  { delay: 2350, text: 'Received 85 RSS items · normalizing to canonical schema', type: 'info' },
+  { delay: 2550, text: 'Schema drift check passed — all expected keys present', type: 'success' },
+  { delay: 2750, text: 'Merging 224 validated records from 2 sources', type: 'info' },
+  { delay: 2950, text: 'Applying keyword filters and relevance ranking...', type: 'info' },
+  { delay: 3150, text: 'Pipeline complete. Rendering results.', type: 'success' },
 ];
 
-const SOURCES = [
-  { name: 'RemoteOK API', color: '#f97316', status: 'ACTIVE' },
-  { name: 'WeWorkRemotely RSS', color: '#34d399', status: 'STANDBY' },
-  { name: 'Sentinel Sandbox', color: '#38bdf8', status: 'READY' },
-];
+const TYPE_COLORS: Record<string, string> = {
+  info:    'text-white/60',
+  success: 'text-emerald-400',
+  warn:    'text-amber-400',
+  error:   'text-red-400',
+};
+
+const TYPE_PREFIX: Record<string, string> = {
+  info:    '›',
+  success: '✓',
+  warn:    '⚠',
+  error:   '✗',
+};
 
 export const SourceCycleLoader: React.FC = () => {
-  const [phaseIndex, setPhaseIndex] = useState(0);
-  const [sourceIndex, setSourceIndex] = useState(0);
-  const [dots, setDots] = useState('');
+  const [visibleLines, setVisibleLines] = useState<number[]>([]);
+  const [cursor, setCursor] = useState(true);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const phraseInterval = setInterval(() => {
-      setPhaseIndex((prev) => (prev + 1) % THINKING_PHRASES.length);
-    }, 1100);
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
-    const sourceInterval = setInterval(() => {
-      setSourceIndex((prev) => (prev + 1) % SOURCES.length);
-    }, 1500);
+    LOG_LINES.forEach((line, i) => {
+      const t = setTimeout(() => {
+        setVisibleLines((prev) => [...prev, i]);
+      }, line.delay);
+      timers.push(t);
+    });
 
-    const dotInterval = setInterval(() => {
-      setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
-    }, 350);
+    // Blink cursor
+    const cursorTimer = setInterval(() => setCursor((c) => !c), 530);
 
     return () => {
-      clearInterval(phraseInterval);
-      clearInterval(sourceInterval);
-      clearInterval(dotInterval);
+      timers.forEach(clearTimeout);
+      clearInterval(cursorTimer);
     };
   }, []);
 
-  const currentPhase = THINKING_PHRASES[phaseIndex];
-  const currentSource = SOURCES[sourceIndex];
-  const CurrentIcon = currentPhase.icon;
+  // Auto-scroll to bottom as lines appear
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [visibleLines]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto my-12 p-8 rounded-3xl bg-[#031714]/90 border border-emerald-500/20 backdrop-blur-xl shadow-2xl flex flex-col items-center text-center space-y-6 animate-fadeIn">
-      {/* Animated Radar Glowing Node */}
-      <div className="relative w-24 h-24 flex items-center justify-center">
-        <div
-          className="absolute inset-0 rounded-full animate-ping opacity-25"
-          style={{ backgroundColor: currentPhase.color }}
-        />
-        <div
-          className="absolute inset-2 rounded-full animate-pulse opacity-40 blur-sm"
-          style={{ backgroundColor: currentPhase.color }}
-        />
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center transition-colors duration-500 shadow-xl border border-white/20"
-          style={{
-            background: `radial-gradient(circle, ${currentPhase.color}40, #041a17)`,
-          }}
-        >
-          <CurrentIcon className="w-7 h-7 text-white animate-bounce" />
-        </div>
+    <div className="w-full max-w-2xl mx-auto my-6 rounded-2xl overflow-hidden border border-white/10 bg-[#0d1117] shadow-2xl">
+      {/* Window chrome */}
+      <div className="flex items-center gap-2 px-4 py-3 bg-[#161b22] border-b border-white/10">
+        <span className="w-3 h-3 rounded-full bg-[#ff5f57]" />
+        <span className="w-3 h-3 rounded-full bg-[#febc2e]" />
+        <span className="w-3 h-3 rounded-full bg-[#28c840]" />
+        <span className="ml-3 text-xs font-mono text-white/30">sentinel-ingestion-pipeline</span>
       </div>
 
-      {/* Claude-style Deep Research Step Indicator */}
-      <div className="space-y-2">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.06] border border-white/15 text-xs font-mono font-semibold uppercase tracking-wider text-emerald-300">
-          <span className="w-2 h-2 rounded-full animate-ping" style={{ backgroundColor: currentPhase.color }} />
-          <span>Step 0{phaseIndex + 1} • {currentPhase.step}</span>
-        </div>
-
-        <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight font-sans transition-all duration-300 min-h-[40px] flex items-center justify-center">
-          <span>{currentPhase.text}</span>
-          <span className="text-emerald-400 font-mono w-6 text-left">{dots}</span>
-        </h4>
-      </div>
-
-      {/* Active Ingestion Pipeline Bar */}
-      <div className="w-full pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <span className="text-white/40 font-mono uppercase text-[11px] font-bold">Ingestion Mesh:</span>
-        <div className="flex items-center gap-2">
-          {SOURCES.map((src, i) => (
-            <div
-              key={src.name}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300"
-              style={{
-                background: i === sourceIndex ? `${src.color}22` : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${i === sourceIndex ? src.color + '60' : 'rgba(255,255,255,0.08)'}`,
-                color: i === sourceIndex ? src.color : 'rgba(255,255,255,0.4)',
-              }}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${i === sourceIndex ? 'animate-pulse' : ''}`}
-                style={{ backgroundColor: src.color }}
-              />
-              {src.name}
+      {/* Terminal body */}
+      <div className="px-5 py-4 font-mono text-xs space-y-1 min-h-[160px] max-h-[220px] overflow-y-auto">
+        {visibleLines.map((lineIdx) => {
+          const line = LOG_LINES[lineIdx];
+          return (
+            <div key={lineIdx} className="flex items-start gap-2 animate-fadeIn">
+              <span className={`shrink-0 mt-px w-3 text-center ${TYPE_COLORS[line.type]}`}>
+                {TYPE_PREFIX[line.type]}
+              </span>
+              <span className={TYPE_COLORS[line.type]}>{line.text}</span>
             </div>
-          ))}
-        </div>
+          );
+        })}
+
+        {/* Blinking cursor line */}
+        {visibleLines.length < LOG_LINES.length && (
+          <div className="flex items-center gap-2">
+            <span className="text-white/40 w-3 text-center">›</span>
+            <span className={`w-2 h-3.5 bg-emerald-400 rounded-sm transition-opacity ${cursor ? 'opacity-100' : 'opacity-0'}`} />
+          </div>
+        )}
+        <div ref={bottomRef} />
       </div>
     </div>
   );
