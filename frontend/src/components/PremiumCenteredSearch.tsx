@@ -21,16 +21,18 @@ export const PremiumCenteredSearch: React.FC<PremiumCenteredSearchProps> = ({
   const [query, setQuery] = useState('');
   const [activeSource, setActiveSource] = useState('');
 
-  const quickPills = ['Python', 'React', 'Rust', 'Remote', 'DevOps', 'Golang', 'Staff Engineer'];
+  const quickPills = ['AI Engineer', 'Python', 'React', 'Rust', 'Remote', 'DevOps', 'Golang', 'Staff Engineer'];
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(query, '', '', activeSource);
+    onOpenDashboard();
   };
 
   const handlePillClick = (pill: string) => {
     setQuery(pill);
     onSearch(pill, '', '', activeSource);
+    onOpenDashboard();
   };
 
   return (
