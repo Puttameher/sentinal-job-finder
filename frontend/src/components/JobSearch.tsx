@@ -182,27 +182,21 @@ export const JobSearch: React.FC<JobSearchProps> = ({
       )}
 
       {/* Jobs Grid */}
-      {loading ? (
-        <div className="py-20 text-center space-y-4 bg-[#08201a] rounded-3xl border border-[#1b4337]">
-          <RefreshCw className="w-9 h-9 text-[#e2761b] animate-spin mx-auto" />
-          <p className="text-base font-bold text-white font-sans">Pacing request & executing resilient pipeline...</p>
-          <p className="text-xs text-[#74ab9f]">Checking circuit breakers, verifying Pydantic schema, and isolating malformed records</p>
-        </div>
-      ) : ingestionData && ingestionData.jobs.length > 0 ? (
+      {ingestionData && ingestionData.jobs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {ingestionData.jobs.map((job) => (
             <JobCard key={job.id} job={job} onSelect={onSelectJob} />
           ))}
         </div>
-      ) : (
+      ) : !loading ? (
         <div className="py-20 text-center rounded-3xl bg-[#08201a] border border-[#1b4337] space-y-3">
           <Search className="w-9 h-9 text-[#3b7363] mx-auto" />
           <h3 className="text-base font-bold text-white">No matching opportunities found</h3>
           <p className="text-xs text-[#74ab9f] max-w-sm mx-auto">
-            Try adjusting keywords, clear filters, or reset fault simulations in Demo Lab.
+            Try adjusting keywords or select a different source above.
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

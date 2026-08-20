@@ -12,6 +12,25 @@ import httpx
 from .base import JobSource
 from ..models.job import Job, JobSearchParams
 
+# Keywords used to pre-filter RemoteOK results (tech-only jobs)
+TECH_ROLE_KEYWORDS = [
+    "engineer", "developer", "devops", "data", "backend", "frontend",
+    "fullstack", "python", "react", "typescript", "golang", "rust", "java",
+    "scala", "ruby", "ml", "ai", "machine learning", "cloud", "sre",
+    "infrastructure", "security", "platform", "software", "architect",
+    "scientist", "analyst", "blockchain", "mobile", "ios", "android",
+]
+
+# Title keywords used to enrich tags
+TITLE_TAG_KEYWORDS = [
+    "python", "react", "typescript", "javascript", "golang", "ruby",
+    "django", "fastapi", "ai", "node", "engineer", "devops", "ml",
+    "machine learning", "backend", "frontend", "fullstack", "full-stack",
+    "senior", "lead", "staff", "rust", "java", "scala", "kubernetes",
+    "docker", "aws", "cloud", "data", "analytics", "security", "sre",
+    "architect", "mobile", "ios", "android",
+]
+
 
 class RemoteOKSource(JobSource):
     """Primary public API source (low-risk, structured JSON, real data)."""
@@ -37,6 +56,13 @@ class RemoteOKSource(JobSource):
     def get_expected_schema_keys(self) -> List[str]:
         return ["id", "position", "company", "url", "date", "description", "tags"]
 
+    def _is_tech_job(self, record: Dict[str, Any]) -> bool:
+        """Filter out non-tech listings (customer support, logistics, etc.)"""
+        title = str(record.get("position") or record.get("title") or "").lower()
+        tags = [str(t).lower() for t in (record.get("tags") or [])]
+        combined = f"{title} {' '.join(tags)}"
+        return any(kw in combined for kw in TECH_ROLE_KEYWORDS)
+
     async def fetch_raw(self, params: JobSearchParams) -> List[Dict[str, Any]]:
         """Fetch raw JSON job records from RemoteOK with responsible headers."""
         headers = {
@@ -45,9 +71,30 @@ class RemoteOKSource(JobSource):
             "Accept-Language": "en-US,en;q=0.9",
         }
 
+        # Build query tag for RemoteOK API (best-effort keyword → tag mapping)
+        query_params: Dict[str, str] = {}
+        raw_query = (params.query or "").strip().lower()
+        if raw_query:
+            # Map multi-word queries to the best RemoteOK tag
+            tag_map = {
+                "ai": "ai", "machine learning": "machine-learning", "ml": "machine-learning",
+                "python": "python", "react": "react", "typescript": "typescript",
+                "javascript": "javascript", "golang": "golang", "rust": "rust",
+                "java": "java", "ruby": "ruby", "node": "node",
+                "devops": "devops", "kubernetes": "kubernetes", "docker": "docker",
+                "aws": "aws", "cloud": "cloud", "data": "data-science",
+                "backend": "back-end", "frontend": "front-end",
+            }
+            matched_tag = None
+            for kw, tag_val in tag_map.items():
+                if kw in raw_query:
+                    matched_tag = tag_val
+                    break
+            if matched_tag:
+                query_params["tag"] = matched_tag
+
         async with httpx.AsyncClient(timeout=self._timeout, follow_redirects=True) as client:
-            # First attempt with primary API endpoint
-            response = await client.get(self._base_url, headers=headers)
+            response = await client.get(self._base_url, headers=headers, params=query_params)
 
             if response.status_code == 429:
                 raise httpx.HTTPStatusError(
@@ -62,13 +109,17 @@ class RemoteOKSource(JobSource):
             if not isinstance(data, list):
                 raise ValueError(f"Expected JSON array from RemoteOK, got {type(data).__name__}")
 
-            # RemoteOK includes a metadata dictionary as first element (e.g. {"legal": ...})
+            # Strip metadata first element, keep only valid job records
             raw_records = [
                 item for item in data
                 if isinstance(item, dict) and "id" in item and ("position" in item or "title" in item)
             ]
 
-            return raw_records
+            # Pre-filter to tech jobs only (removes logistics, customer support, etc.)
+            tech_records = [r for r in raw_records if self._is_tech_job(r)]
+
+            # Fall back to all records if tech filter eliminates everything
+            return tech_records if tech_records else raw_records
 
     def normalize(self, raw_record: Dict[str, Any]) -> Optional[Job]:
         """Convert RemoteOK JSON item to canonical Job."""
@@ -77,7 +128,7 @@ class RemoteOKSource(JobSource):
             title = str(raw_record.get("position") or raw_record.get("title") or "").strip()
             company = str(raw_record.get("company") or "").strip()
             url = str(raw_record.get("url") or raw_record.get("apply_url") or "").strip()
-            
+
             if not ext_id or not title or not company:
                 return None
 
@@ -95,7 +146,6 @@ class RemoteOKSource(JobSource):
                     if isinstance(date_str, (int, float)):
                         posted_at = datetime.utcfromtimestamp(date_str)
                     else:
-                        # ISO 8601 string
                         posted_at = datetime.fromisoformat(str(date_str).replace("Z", "+00:00"))
                 except Exception:
                     posted_at = None
@@ -105,32 +155,34 @@ class RemoteOKSource(JobSource):
             clean_desc = re.sub(r"<[^>]+>", " ", desc).strip()
             clean_desc = re.sub(r"\s+", " ", clean_desc)
 
-            # Extract tags
+            # Extract tags from API
             tags = raw_record.get("tags") or []
             if isinstance(tags, list):
                 tags = [str(t).strip().lower() for t in tags if str(t).strip()]
             else:
                 tags = []
 
+            # Enrich tags from job title (so "engineer" searches work)
+            title_lower = title.lower()
+            for kw in TITLE_TAG_KEYWORDS:
+                if kw in title_lower and kw not in tags:
+                    tags.append(kw)
+
             # Extract salary if provided
             salary_min = None
             salary_max = None
-            sal_min_val = raw_record.get("salary_min")
-            sal_max_val = raw_record.get("salary_max")
-            if sal_min_val is not None:
-                try:
-                    salary_min = float(sal_min_val)
-                except (ValueError, TypeError):
-                    pass
-            if sal_max_val is not None:
-                try:
-                    salary_max = float(sal_max_val)
-                except (ValueError, TypeError):
-                    pass
+            for field, target in [("salary_min", "salary_min"), ("salary_max", "salary_max")]:
+                val = raw_record.get(field)
+                if val is not None:
+                    try:
+                        if field == "salary_min":
+                            salary_min = float(val)
+                        else:
+                            salary_max = float(val)
+                    except (ValueError, TypeError):
+                        pass
 
-            location = str(raw_record.get("location") or "Remote").strip()
-            if not location:
-                location = "Remote"
+            location = str(raw_record.get("location") or "Remote").strip() or "Remote"
 
             return Job(
                 id=f"remoteok:{ext_id}",
@@ -142,7 +194,7 @@ class RemoteOKSource(JobSource):
                 url=url,
                 posted_at=posted_at,
                 description=clean_desc[:1200] if clean_desc else "",
-                tags=tags[:8],
+                tags=tags[:10],
                 salary_min=salary_min,
                 salary_max=salary_max,
                 salary_currency="USD",
