@@ -44,37 +44,30 @@ class RemoteOKSource(JobSource):
             "Accept": "application/json",
             "Accept-Language": "en-US,en;q=0.9",
         }
-        
-        # Build query parameters
-        url = self._base_url
-        query_params = {}
-        if params.tags and len(params.tags) > 0:
-            query_params["tag"] = params.tags[0].lower()
-        elif params.query:
-            query_params["tag"] = params.query.lower().replace(" ", "-")
 
         async with httpx.AsyncClient(timeout=self._timeout, follow_redirects=True) as client:
-            response = await client.get(url, headers=headers, params=query_params)
-            
+            # First attempt with primary API endpoint
+            response = await client.get(self._base_url, headers=headers)
+
             if response.status_code == 429:
                 raise httpx.HTTPStatusError(
                     "Rate limit exceeded (HTTP 429)",
                     request=response.request,
                     response=response
                 )
-            
+
             response.raise_for_status()
-            
+
             data = response.json()
             if not isinstance(data, list):
                 raise ValueError(f"Expected JSON array from RemoteOK, got {type(data).__name__}")
-            
+
             # RemoteOK includes a metadata dictionary as first element (e.g. {"legal": ...})
             raw_records = [
-                item for item in data 
-                if isinstance(item, dict) and "id" in item and "position" in item
+                item for item in data
+                if isinstance(item, dict) and "id" in item and ("position" in item or "title" in item)
             ]
-            
+
             return raw_records
 
     def normalize(self, raw_record: Dict[str, Any]) -> Optional[Job]:

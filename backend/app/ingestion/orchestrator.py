@@ -250,15 +250,32 @@ class IngestionOrchestrator:
         )
 
     def _apply_client_filters(self, jobs: List[Job], params: JobSearchParams) -> List[Job]:
-        """In-memory filtering for responsive search criteria."""
+        """In-memory filtering for responsive search criteria with multi-token keyword support."""
         results = jobs
 
         if params.query:
-            q = params.query.lower()
-            results = [
-                j for j in results
-                if q in j.title.lower() or q in j.description.lower() or any(q in t.lower() for t in j.tags)
-            ]
+            raw_q = params.query.strip().lower()
+            tokens = [t for t in raw_q.split() if len(t) > 1 or t in ("ai", "ml", "go", "c#", "ui", "ux")]
+            
+            def matches_query(j: Job) -> bool:
+                title_lower = j.title.lower()
+                desc_lower = j.description.lower()
+                comp_lower = j.company.lower()
+                tags_lower = [t.lower() for t in j.tags]
+                
+                # Check exact phrase first
+                if raw_q in title_lower or raw_q in desc_lower or any(raw_q in t for t in tags_lower):
+                    return True
+                
+                # Check if all tokens match across title, tags, company, or description
+                if tokens:
+                    return all(
+                        tok in title_lower or tok in desc_lower or tok in comp_lower or any(tok in t for t in tags_lower)
+                        for tok in tokens
+                    )
+                return False
+
+            results = [j for j in results if matches_query(j)]
 
         if params.location and params.location.lower() != "any":
             loc_q = params.location.lower()
