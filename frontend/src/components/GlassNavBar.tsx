@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SentinelSketchLogo } from './SentinelSketchLogo';
 import { Search } from 'lucide-react';
 
-export type NavPage = 'home' | 'dashboard' | 'telemetry';
+export type NavPage = 'home' | 'liveflow';
 
 interface GlassNavBarProps {
   activePage: NavPage;
@@ -25,8 +25,7 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
   }, [activePage]);
 
   const navItems = [
-    { id: 'dashboard' as NavPage, label: 'Dashboard' },
-    { id: 'telemetry' as NavPage, label: 'Live Flow', badge: 'Live' },
+    { id: 'liveflow' as NavPage, label: 'Live Flow', badge: 'Live' },
   ];
 
   const isShown = visible || activePage !== 'home';
@@ -130,7 +129,7 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
 
         {/* CTA Button */}
         <button
-          onClick={() => onNavigate('dashboard')}
+          onClick={() => onNavigate('liveflow')}
           className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[12px] font-bold uppercase tracking-wider text-white cursor-pointer transition-all duration-250 hover:scale-[1.04] active:scale-[0.97] whitespace-nowrap"
           style={{
             background:
@@ -140,7 +139,7 @@ export const GlassNavBar: React.FC<GlassNavBarProps> = ({ activePage, onNavigate
           }}
         >
           <Search className="w-3.5 h-3.5" />
-          Dashboard
+          Search Jobs
         </button>
       </nav>
     </div>

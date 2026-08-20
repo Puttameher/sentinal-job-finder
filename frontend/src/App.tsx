@@ -2,50 +2,40 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ProtocolMarquee } from './components/ProtocolMarquee';
 import { SentinelHero } from './components/SentinelHero';
 import { PremiumCenteredSearch } from './components/PremiumCenteredSearch';
-import { SentinelSectionIngest } from './components/SentinelSectionIngest';
-import { SentinelSectionResilience } from './components/SentinelSectionResilience';
-import { SentinelSectionStats } from './components/SentinelSectionStats';
+import { JobCard } from './components/JobCard';
 import { SentinelClosingPage } from './components/SentinelClosingPage';
 import { GlassNavBar, NavPage } from './components/GlassNavBar';
 import { JobDetailModal } from './components/JobDetailModal';
-import { DriftDiagnosisModal } from './components/DriftDiagnosisModal';
-import { IngestionResponse, Job, SystemHealthResponse, DriftDiagnosisResponse } from './types';
+import { LiveFlowLoader } from './components/LiveFlowLoader';
+import { IngestionResponse, Job } from './types';
 import { X } from 'lucide-react';
 
 export function App() {
   const [activePage, setActivePage] = useState<NavPage>('home');
   const [menuOpen, setMenuOpen] = useState<boolean>(false);
-  const [systemHealth, setSystemHealth] = useState<SystemHealthResponse | null>(null);
   const [ingestionData, setIngestionData] = useState<IngestionResponse | null>(null);
   const [loadingSearch, setLoadingSearch] = useState<boolean>(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-
-  // AI Drift Diagnosis Modal State
-  const [driftModalOpen, setDriftModalOpen] = useState<boolean>(false);
-  const [driftDiagnosis, setDriftDiagnosis] = useState<DriftDiagnosisResponse | null>(null);
-  const [loadingDrift, setLoadingDrift] = useState<boolean>(false);
+  const [lastQuery, setLastQuery] = useState<string>('');
 
   // Search section ref for smooth scrolling on Home page
   const searchRef = useRef<HTMLDivElement>(null);
 
   const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 
-  // Fetch telemetry and system health
+  // Lightweight health ping used to refresh circuit-breaker state after search
   const fetchHealth = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/health`);
-      if (res.ok) {
-        const data: SystemHealthResponse = await res.json();
-        setSystemHealth(data);
-      }
-    } catch (err) {
-      console.error('Error fetching system health:', err);
+      await fetch(`${API_BASE}/api/health`);
+    } catch (_) {
+      // silent — health is best-effort
     }
   }, [API_BASE]);
 
-  // Fetch jobs
+  // Fetch jobs — only called when user explicitly searches
   const handleSearch = useCallback(
     async (query = '', location = '', company = '', preferredSource = '') => {
+      setLastQuery(query);
       setLoadingSearch(true);
       try {
         const params = new URLSearchParams();
@@ -63,38 +53,19 @@ export function App() {
         console.error('Error executing job ingestion search:', err);
       } finally {
         setLoadingSearch(false);
-        fetchHealth(); // refresh telemetry
+        fetchHealth();
       }
     },
     [fetchHealth, API_BASE]
   );
 
-  // Initial load — only fetch health telemetry, NOT jobs.
-  // Jobs are fetched only when the user explicitly searches (avoids scroll glitch).
+  // On mount: only fetch health, NOT jobs (avoids scroll glitch)
   useEffect(() => {
     fetchHealth();
     const interval = setInterval(fetchHealth, 4000);
     return () => clearInterval(interval);
   }, [fetchHealth]);
 
-  // Trigger AI Schema Drift Diagnosis
-  const handleOpenDriftDiagnosis = async (sourceName: string) => {
-    setDriftModalOpen(true);
-    setLoadingDrift(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/ai/diagnose-drift?source_name=${encodeURIComponent(sourceName)}`, {
-        method: 'POST',
-      });
-      if (res.ok) {
-        const data: DriftDiagnosisResponse = await res.json();
-        setDriftDiagnosis(data);
-      }
-    } catch (err) {
-      console.error('Error diagnosing schema drift:', err);
-    } finally {
-      setLoadingDrift(false);
-    }
-  };
 
   const scrollToSearch = () => {
     if (activePage !== 'home') {
@@ -148,16 +119,10 @@ export function App() {
               SEARCH ROLES
             </button>
             <button
-              onClick={() => navigateTo('dashboard')}
+              onClick={() => navigateTo('liveflow')}
               className="block font-dela text-4xl sm:text-5xl text-white hover:text-[#bbf3e5] transition-colors cursor-pointer text-left"
             >
-              OPPORTUNITIES
-            </button>
-            <button
-              onClick={() => navigateTo('telemetry')}
-              className="block font-dela text-4xl sm:text-5xl text-white hover:text-[#bbf3e5] transition-colors cursor-pointer text-left"
-            >
-              TELEMETRY MATRIX
+              LIVE FLOW
             </button>
           </div>
 
@@ -173,57 +138,72 @@ export function App() {
 
       {/* ==================== PAGES ==================== */}
 
-      {/* 1. HOME PAGE — Hero -> Marquee -> Centered Search -> Closing Screen */}
+      {/* 1. HOME PAGE — Hero -> Marquee -> Centered Search -> Closing */}
       {activePage === 'home' && (
         <main className="flex-1 w-full">
-          {/* Page 1: Hero Stage with 3D Mascot */}
           <SentinelHero
             onGetStarted={scrollToSearch}
-            onExploreDemo={() => navigateTo('telemetry')}
+            onExploreDemo={() => navigateTo('liveflow')}
             onOpenMenu={() => setMenuOpen(true)}
           />
 
           <ProtocolMarquee />
 
-          {/* Page 2: Premium Centered Liquid Search Box */}
-          <div ref={searchRef}>
+          {/* Premium Centered Search Box */}
+          <div ref={searchRef} id="discover-search">
             <PremiumCenteredSearch
               onSearch={handleSearch}
               loading={loadingSearch}
               ingestionData={ingestionData}
-              onOpenDashboard={() => navigateTo('dashboard')}
+              onOpenDashboard={() => navigateTo('liveflow')}
               onSelectJob={(job) => setSelectedJob(job)}
             />
           </div>
 
-          {/* Page 3: Minimalist Closing Screen */}
           <SentinelClosingPage onNavigate={navigateTo} />
         </main>
       )}
 
-      {/* 2. DASHBOARD PAGE — Dedicated Full Ingestion Grid & Cards */}
-      {activePage === 'dashboard' && (
+      {/* 2. LIVE FLOW PAGE — Premium loader while searching, jobs grid after */}
+      {activePage === 'liveflow' && (
         <main className="flex-1 w-full pt-20">
-          <SentinelSectionIngest
-            onSearch={handleSearch}
-            loading={loadingSearch}
-            ingestionData={ingestionData}
-            onSelectJob={(job) => setSelectedJob(job)}
-          />
-          <SentinelClosingPage onNavigate={navigateTo} />
-        </main>
-      )}
+          {loadingSearch ? (
+            <LiveFlowLoader query={lastQuery} />
+          ) : (
+            <div className="animate-pageReveal">
+              {/* Centered heading */}
+              <div className="w-full px-4 sm:px-6 lg:px-8 py-12 bg-[#0b2820] border-b border-emerald-500/10 text-center">
+                <h1
+                  className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-none"
+                  style={{ textShadow: '0 0 50px rgba(52,211,153,0.12)' }}
+                >
+                  Explore Jobs
+                </h1>
+                <p className="mt-3 text-sm text-white/40 font-medium">
+                  Live opportunities from RemoteOK &amp; WeWorkRemotely — normalized in real time.
+                </p>
+              </div>
 
-      {/* 3. TELEMETRY PAGE — Live Flow / Health & Metrics */}
-      {activePage === 'telemetry' && (
-        <main className="flex-1 w-full pt-20">
-          <SentinelSectionResilience
-            systemHealth={systemHealth}
-            onRefresh={fetchHealth}
-            onOpenDriftDiagnosis={handleOpenDriftDiagnosis}
-          />
-          <SentinelSectionStats />
-          <SentinelClosingPage onNavigate={navigateTo} />
+              {/* Jobs grid — no search form, no filters, no telemetry bar */}
+              <section className="w-full py-12 px-4 sm:px-6 lg:px-8 bg-[#0b2820]">
+                <div className="max-w-7xl mx-auto">
+                  {ingestionData && ingestionData.jobs.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {ingestionData.jobs.map((job) => (
+                        <JobCard key={job.id} job={job} onSelect={setSelectedJob} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-20 text-center rounded-3xl bg-[#08201a] border border-[#1b4337] space-y-3">
+                      <p className="text-base font-bold text-white/60">No results yet</p>
+                      <p className="text-xs text-white/30">Search from the home page to load opportunities.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          )}
+          {!loadingSearch && <SentinelClosingPage onNavigate={navigateTo} />}
         </main>
       )}
 
@@ -231,15 +211,18 @@ export function App() {
       <JobDetailModal
         job={selectedJob}
         onClose={() => setSelectedJob(null)}
+        onDiscoverMore={() => {
+          setSelectedJob(null);
+          navigateTo('home');
+          // scroll to search section after navigation settles
+          setTimeout(() => {
+            const el = document.getElementById('discover-search');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }, 120);
+        }}
       />
 
-      {driftModalOpen && (
-        <DriftDiagnosisModal
-          diagnosis={driftDiagnosis}
-          loading={loadingDrift}
-          onClose={() => setDriftModalOpen(false)}
-        />
-      )}
+
     </div>
   );
 }

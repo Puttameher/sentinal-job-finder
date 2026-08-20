@@ -21,7 +21,8 @@ export const JobSearch: React.FC<JobSearchProps> = ({
   const [location, setLocation] = useState('any');
   const [company, setCompany] = useState('any');
   const [preferredSource, setPreferredSource] = useState('all');
-  const [hasSearched, setHasSearched] = useState(false);
+  // true if ingestionData already exists (e.g. navigated here after a Home search)
+  const [hasSearched, setHasSearched] = useState(() => ingestionData !== null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,22 +39,8 @@ export const JobSearch: React.FC<JobSearchProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Search Filter Card */}
-      <div className="rounded-3xl p-8 sm:p-10 bg-[#102d24] border border-[#265949] shadow-xl text-left space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1b4337] pb-4">
-          <div>
-            <h3 className="text-2xl font-black text-white font-sans uppercase">
-              Opportunity Search &amp; Filter
-            </h3>
-            <p className="text-xs text-[#a3d9cb] mt-0.5">
-              Live normalized querying across RemoteOK API and WeWorkRemotely RSS.
-            </p>
-          </div>
-          <div className="px-3 py-1 rounded-full bg-[#08201a] border border-[#1b4337] text-emerald-300 text-xs font-mono font-bold self-start">
-            Pydantic Invariant Guard Active
-          </div>
-        </div>
-
+      {/* Search form — no header card */}
+      <div className="space-y-4">
         {/* Search Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-2.5 p-1.5 rounded-2xl bg-[#08201a] border border-[#265949]">

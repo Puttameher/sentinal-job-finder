@@ -2,7 +2,7 @@ import React from 'react';
 import { SentinelSketchLogo } from './SentinelSketchLogo';
 
 interface SentinelClosingPageProps {
-  onNavigate: (tab: 'home' | 'dashboard' | 'telemetry') => void;
+  onNavigate: (tab: 'home' | 'liveflow') => void;
 }
 
 export const SentinelClosingPage: React.FC<SentinelClosingPageProps> = ({ onNavigate }) => {
@@ -22,16 +22,16 @@ export const SentinelClosingPage: React.FC<SentinelClosingPageProps> = ({ onNavi
 
         {/* Top-Right: Horizontal Agent / Module List */}
         <div className="flex flex-wrap items-center gap-x-6 sm:gap-x-8 gap-y-2 text-xs font-medium text-white/70 tracking-wide">
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-white transition-colors cursor-pointer">
+          <button onClick={() => onNavigate('liveflow')} className="hover:text-white transition-colors cursor-pointer">
             Live Connector
           </button>
-          <button onClick={() => onNavigate('telemetry')} className="hover:text-white transition-colors cursor-pointer">
+          <button onClick={() => onNavigate('liveflow')} className="hover:text-white transition-colors cursor-pointer">
             Circuit Breaker
           </button>
-          <button onClick={() => onNavigate('telemetry')} className="hover:text-white transition-colors cursor-pointer">
+          <button onClick={() => onNavigate('liveflow')} className="hover:text-white transition-colors cursor-pointer">
             Telemetry Matrix
           </button>
-          <button onClick={() => onNavigate('dashboard')} className="hover:text-white transition-colors cursor-pointer">
+          <button onClick={() => onNavigate('liveflow')} className="hover:text-white transition-colors cursor-pointer">
             Normalized Schema
           </button>
         </div>
@@ -66,14 +66,14 @@ export const SentinelClosingPage: React.FC<SentinelClosingPageProps> = ({ onNavi
         {/* Horizontal Navigation Links */}
         <div className="flex flex-wrap items-center gap-x-6 sm:gap-x-8 gap-y-2">
           <button
-            onClick={() => onNavigate('dashboard')}
+            onClick={() => onNavigate('liveflow')}
             className="hover:text-white transition-colors cursor-pointer"
           >
             Multi-Source Ingestion
           </button>
 
           <button
-            onClick={() => onNavigate('telemetry')}
+            onClick={() => onNavigate('liveflow')}
             className="hover:text-white transition-colors cursor-pointer"
           >
             Telemetry Matrix

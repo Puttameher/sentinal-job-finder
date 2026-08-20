@@ -98,11 +98,20 @@
   border-radius: 4px;
 }
 
-/* Fade-in animation */
+/* Fade-in animation — used throughout the app */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fadeIn {
-  animation: fadeIn 0.35s ease-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Page reveal — used for liveflow results after loader exits */
+@keyframes pageReveal {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-pageReveal {
+  animation: pageReveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
